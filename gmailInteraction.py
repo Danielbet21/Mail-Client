@@ -10,7 +10,6 @@ logging.basicConfig(level=logging.INFO)
 mark
 Aim:   Mark the message as spam, unread, urgent, garbage 
 """
-
 def mark(messages, index):
     for i in range(len(messages)):
         logging.info("i." + messages[i].sender)
@@ -51,13 +50,7 @@ def readMessage():
 sendMessage
 Aim:   Send a message to the recipient
 """
-
 def sendMessage():
-    """ Will add interaction with GPT,that  return it and ask if it's suits the user below------------
-             pong = GPT(message)
-             if pong:
-             the_msg =pong
-             else:"""
     messages = gmail.get_unread_inbox()
     message = messages[0]
 
@@ -89,5 +82,3 @@ def moveToGarbage():
             logging.info("Message moved to garbage\n")
     else:
         logging.info("No such messages")
-
-
