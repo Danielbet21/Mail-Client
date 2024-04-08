@@ -32,7 +32,7 @@ Aim:   Read the messages from the inbox
 def readMessage():
     sys.stdout.reconfigure(encoding='utf-8')
 
-    messages: list = gmail.get_unread_inbox()
+    messages: list = gmail.get_read_inbox()
     # logging.info(messages)
     if len(messages) == 0:
         logging.info("You read all your massages\n")
@@ -50,7 +50,10 @@ def readMessage():
 sendMessage
 Aim:   Send a message to the recipient
 """
-def sendMessage():
+def sendMessage(sender: str, to: str, subject: str = '', msg_html: Optional[str] = None,
+        msg_plain: Optional[str] = None, cc: Optional[List[str]] = None, bcc: Optional[List[str]] = None,
+        attachments: Optional[List[str]] = None, signature: bool = False, user_id: str = 'me'):
+    
     messages = gmail.get_unread_inbox()
     message = messages[0]
 
@@ -82,3 +85,24 @@ def moveToGarbage():
             logging.info("Message moved to garbage\n")
     else:
         logging.info("No such messages")
+        
+"""
+functions i need to implement
+delete_labal
+create_label
+list_labels
+create_message - returns message dict
+get_messages
+get_spam_messages
+get_unread_messages
+get_sent_messages
+get_draft
+get_imported_messages
+get_starred_messages
+send_message
+init ? probably needed - 
+
+
+
+
+"""
