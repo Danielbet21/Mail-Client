@@ -4,9 +4,6 @@ import logging
 from simplegmail import Gmail
 from simplegmail.query import construct_query
 
-
-# Create a Gmail
-from simplegmail import Gmail
 #  object to connect to the Gmail API
 gmail = Gmail()
 logging.basicConfig(level=logging.INFO)
@@ -15,11 +12,11 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 """
 getAllMessages
-Aim:    Read the all the messages from the inbox
+Aim:    Get the all the messages from the inbox
 Output: List of messages
 """
 def getAllMessagesFromInbox() -> list:
-    messages: list = gmail.get_read_inbox()
+    messages: list = gmail.get_messages()
     
     if len(messages) == 0:
         logging.info("Your inbox is empty\n")
@@ -30,7 +27,7 @@ def getAllMessagesFromInbox() -> list:
 """ 
 getMessageByDate
 Aim:    Read the messages from the inbox by start and end date
-Input:  Start Date, end Date
+Input:  Start Date, end Date (DATE FORMAT: "YYYY/MM/DD")
 Output: List of messages
 """
 def getMessageByDate(strDate: str, endDate: str)-> list:
@@ -60,7 +57,7 @@ def getMessegeBySource(source: str)->list:
 
 """
 getUnreadMessages
-Aim:    Read the unread messages from the inbox
+Aim:    Read the unread messages from the inbox, and mark them as read
 Output: list of messages
 """
 def getUnreadMessages()-> list:
@@ -75,18 +72,20 @@ def getUnreadMessages()-> list:
 
 """
 getMessageByLabel
-Aim:    Read the unread messages from the inbox by label
+Aim:    Read the messages from the inbox by label
 Input:  Wanted Label to search (e.g. SPAM, TRASH, UNREAD, STARRED, SENT, IMPORTANT, DRAFT, PERSONAL, SOCIAL,
         PROMOTIONS, UPDATES, FORUMS and all the custom labels you have created)
+        unread: True or False to search only the unread messages or not
 Output: List of messages
 """
-def getMessageByLabel(wantedLabel: str )-> list:    
+def getMessageByLabel(wantedLabel: str , unread: bool)-> list: 
     query_params = {
-    "unread": True,
-    "labels":[[wantedLabel]]
+        "labels":[[wantedLabel]]
     }
-
     messages = gmail.get_messages(query=construct_query(query_params))
+    # if unread is True, then filter the unread messages
+    if unread:
+        messages = [message for message in messages if 'UNREAD' in message.label_ids]
 
     if len(messages) == 0:
         logging.info("No messages found\n")
@@ -100,18 +99,20 @@ sendMessage
 Aim:   Send a message to the recipient
 Input: To, subject, user_id
 """
-def sendMessage(to: str, subject: str = '', user_id: str = 'me')-> None:
+def sendMessage(to: str, subject: str = '', me: str = "danielbetzalel16@gmail.com")-> None:
 
-    the_msg = input("Enter your message for your recipient:\n")
+    # the_msg = input("Enter your message for your recipient:\n")
+    the_msg = "Hello, this is a test message"
     params = {
-        "to": message.sender,
-        "sender": message.recipient,
-        "subject": message.subject,
+        "to": to,
+        "sender": me,
+        "subject": subject,
         "msg_html": the_msg,
         "msg_plain": the_msg,
         "signature": True  # use my account signature
     }
     gmail.send_message(**params)  # unpack all the data from params
+    logging.info("Message sent\n")
 
 
 """
@@ -150,13 +151,6 @@ Input: Message object
 def markAsImportant(message)-> int:
     message.mark_as_important()
     return 1
-
-
-
-
-
-
-
 
 
 
