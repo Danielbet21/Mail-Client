@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}User{% endblock %}
+{% block content %}
+<p style="margin-left: 20px;" >Welcome {{name}}</p>
+    {% if not messages %}
+        <p>No messages</p>
+    {% else %}
+        {% for msg in messages %}
+            <p style="margin-left: 20px;"><strong>Sender:</strong> {{ msg.sender }}</p>
+            <p style="margin-left: 20px;"><strong>Subject:</strong> {{ msg.subject }}</p>
+            <p style="margin-left: 20px;"><strong>Date:</strong> {{ msg.date }}</p>
+            <hr style="margin-left: 20px;"> <!-- horizontal line for separating messages -->
+        {% endfor %}
+    {% endif %}
+{% endblock %}
