@@ -1,68 +1,79 @@
-from flask import Flask, redirect, url_for, render_template, request, session, flash
 from datetime import timedelta
-import gmail
+from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
+import sys
+from simplegmail import Gmail
+from simplegmail.query import construct_query
 
 app = Flask(__name__)
 app.secret_key = "secret"
-app.permanent_session_lifetime = timedelta(days=1)
+gmail = Gmail()
+sys.stdout.reconfigure(encoding='utf-8')
 
-"""
- Home
- Aim:		Display the home page
-"""
+
 @app.route("/")
 def home():
-    return render_template("GmailHome.html")
+    return get_messages_by_label("IMPORTANT")
 
-"""
- Login
- Aim:		Check if the user is logged in ,else redirect to login page  
- Output:	User Page & info / login
-"""
-@app.route("/login", methods=["POST", "GET"])
+
+@app.route("/api/v1/gmail/login", methods=["POST", "GET"])
 def login():
-    if request.method == "POST":
-        # retrieving data and set TTL for the user data
-        session.permanent = True
-        username = request.form["nm"]
-        session["user"] = username
-        flash("Logged in successfully!", "info")
-        return redirect(url_for("user"))
-    else:
-        if user in session:
-            flash("Already logged in", "info")
-            return render_template("user.html")
-
-        return render_template("login.html")
+    pass
 
 
-"""
- User
- Aim:		Display the user his page
-"""
-@app.route("/user")
-def user():
-    if "user" in session:
-        usr = session["user"]
-        return render_template("user.html", name=usr)
-    else:
-        usr = session["user"]
-        return redirect(url_for("login"))
-
-
-"""
- Logout
- Aim:		Dispaly the logout page  
-"""
-@app.route("/logout")
+@app.route("/api/v1/gmail/logout")
 def logout():
-    if "user" in session:
-        usr = session["user"]
-        flash(f"You have been logged out {usr}!", "info")
-    session.pop("user", None)
     return redirect(url_for("login"))
 
 
+@app.route("/api/v1/gmail/user")
+def user(usr):
+    messages = get_messages()
+    return render_template("user.html", name=usr, messages=messages)
+
+
+@app.route('/api/v1/gmail/messages', methods=['GET'])
+def get_messages():
+    try:
+        messages = gmail.get_messages()
+        return render_template("user.html", messages=messages, name="Daniel")
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/v1/gmail/messages/<string:str_date>/<string:end_date>', methods=['GET'])
+def get_messages_by_date(str_date, end_date):
+    try:
+        messages = gmail.get_messages(query=f"after={str_date}, before={end_date}")
+        return render_template("user.html", messages=messages, name="Daniel")
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/v1/gmail/messages/<string:source>', methods=['GET'])
+def get_messages_by_source(source):
+    try:
+        messages = gmail.get_messages(query=f"from: {source}")
+        return render_template("user.html", messages=messages, name="Daniel")
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/v1/gmail/messages/unread', methods=['GET'])
+def get_unread_messages():
+    try:
+        messages = gmail.get_unread_inbox()
+        return render_template("user.html", messages=messages, name="Daniel")
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/v1/gmail/messages/<string:wanted_label>', methods=['GET'])
+def get_messages_by_label(wanted_label):
+    try:
+        messages = gmail.get_messages(query=f"label: {wanted_label}")
+        return render_template("user.html", messages=messages, name="Daniel")
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 if __name__ == "__main__":
