@@ -4,83 +4,69 @@ import logging
 from simplegmail import Gmail
 from simplegmail.query import construct_query
 
-#  object to connect to the Gmail API
 gmail = Gmail()
 logging.basicConfig(level=logging.INFO)
 sys.stdout.reconfigure(encoding='utf-8')
 
 
-"""
-getAllMessages
-Aim:    Get the all the messages from the inbox
-Output: List of messages
-"""
-def getAllMessagesFromInbox() -> list:
-    messages: list = gmail.get_messages()
+def get_all_messages_from_inbox() -> list:
+    """
+    Aim:    Get the all the messages from the inbox
+    Output: List of messages
+    """
+    messages = gmail.get_messages()
     
     if len(messages) == 0:
         logging.info("Your inbox is empty\n")
-        return None
-    else:
-        return messages
+       
+    return messages
 
-""" 
-getMessageByDate
-Aim:    Read the messages from the inbox by start and end date
-Input:  Start Date, end Date (DATE FORMAT: "YYYY/MM/DD")
-Output: List of messages
-"""
-def getMessageByDate(strDate: str, endDate: str)-> list:
-    messages: list = gmail.get_messages(query=f"after={strDate}, before={endDate}")
+def get_message_by_date(str_date: str, end_date: str)-> list:
+    """
+    Aim:    Read the messages from the inbox by start and end date
+    Input:  Start Date, end Date (DATE FORMAT: "YYYY/MM/DD")
+    Output: List of messages
+    """
+    messages = gmail.get_messages(query=f"after={str_date}, before={end_date}")
 
     if len(messages) == 0:
-        logging.info("No messages found\n")
-        return None
-    else:
-        return messages
-   
+        logging.debug("No messages found")
+    
+    return messages
 
-"""
-getMessegeBySource
-Aim:    Get all the messages from the inbox by source  email address 
-Input:  Email source 
-Output: List of messages
-"""
-def getMessegeBySource(source: str)->list:
+def get_message_by_source(source: str)->list:
+    """
+    Aim:    Get all the messages from the inbox by source  email address 
+    Input:  Email source 
+    Output: List of messages
+    """
     messages = gmail.get_messages(query=f"from:{source}")
     if len(messages) == 0:
-        logging.info("No messages found\n")
-        return None
-    else:
-        return messages
+        logging.debug("No messages found")
 
+    return messages
 
-"""
-getUnreadMessages
-Aim:    Read the unread messages from the inbox, and mark them as read
-Output: list of messages
-"""
-def getUnreadMessages()-> list:
-    messages: list = gmail.get_unread_inbox()
+def get_unread_messages()-> list:
+    """
+    Aim:    Read the unread messages from the inbox, and mark them as read
+    Output: list of messages
+    """
+    messages = gmail.get_unread_inbox()
     
     if len(messages) == 0:
-        logging.info("You've read all your messages!\n")
-        return None
-    else:
-        return messages
+                logging.debug("You've read all your messages!")
+    return messages
 
-
-"""
-getMessageByLabel
-Aim:    Read the messages from the inbox by label
-Input:  Wanted Label to search (e.g. SPAM, TRASH, UNREAD, STARRED, SENT, IMPORTANT, DRAFT, PERSONAL, SOCIAL,
-        PROMOTIONS, UPDATES, FORUMS and all the custom labels you have created)
-        unread: True or False to search only the unread messages or not
-Output: List of messages
-"""
-def getMessageByLabel(wantedLabel: str , unread: bool)-> list: 
+def get_message_by_label(wanted_label: str , unread: bool)-> list: 
+    """
+    Aim:    Read the messages from the inbox by label
+    Input:  Wanted Label to search (e.g. SPAM, TRASH, UNREAD, STARRED, SENT, IMPORTANT, DRAFT, PERSONAL, SOCIAL,
+            PROMOTIONS, UPDATES, FORUMS and all the custom labels you have created)
+            unread: True or False to search only the unread messages or not
+    Output: List of messages
+    """
     query_params = {
-        "labels":[[wantedLabel]]
+        "labels":[[wanted_label]]
     }
     messages = gmail.get_messages(query=construct_query(query_params))
     # if unread is True, then filter the unread messages
@@ -88,20 +74,15 @@ def getMessageByLabel(wantedLabel: str , unread: bool)-> list:
         messages = [message for message in messages if 'UNREAD' in message.label_ids]
 
     if len(messages) == 0:
-        logging.info("No messages found\n")
-        return None
-    else:
-        return messages
-   
+        logging.debug("No messages found")
     
-"""
-sendMessage
-Aim:   Send a message to the recipient
-Input: To, subject, user_id
-"""
-def sendMessage(to: str, subject: str = '', me: str = "danielbetzalel16@gmail.com")-> None:
+    return messages
 
-    # the_msg = input("Enter your message for your recipient:\n")
+def send_message(to: str, subject: str = '', me: str = "danielbetzalel16@gmail.com")-> None:
+    """
+    Aim:   Send a message to the recipient
+    Input: To, subject, user_id
+    """
     the_msg = "Hello, this is a test message"
     params = {
         "to": to,
@@ -109,51 +90,47 @@ def sendMessage(to: str, subject: str = '', me: str = "danielbetzalel16@gmail.co
         "subject": subject,
         "msg_html": the_msg,
         "msg_plain": the_msg,
-        "signature": True  # use my account signature
+        "signature": True  
     }
     gmail.send_message(**params)  # unpack all the data from params
-    logging.info("Message sent\n")
+    logging.debug("Message sent")
 
-
-"""
-moveToGarbage
-Aim:   Move the message to the garbage
-Input: source, start date, end date
-"""
-def moveToGarbage(source: str, strDate: str, endDate: str)-> None:  
-    message = gmail.get_messages(query=f"from: {sender}, after={str_date}, before={end_date}")
+def move_to_garbage(source: str, str_date: str, end_date: str)-> None:  
+    """
+    Aim:   Move the message to the garbage
+    Input: source, start date, end date
+    """
+    message = gmail.get_messages(query=f"from: {source}, after={str_date}, before={end_date}")
 
     if len(message) > 0:
         for msg in message:
             logging.info(msg.sender + "\n" + msg.subject + "\n")
             msg.trash()
-            logging.info("Message moved to garbage\n")
+            logging.info("Message moved to garbage")
     else:
-        logging.info("No such messages")
-        return
+         logging.debug("No such messages")
+         
 
-
-"""
-markAsSpam
-Aim:   Mark the email as spam
-Input: Message object
-"""
-def markAsSpam(message)-> int:
+def mark_as_spam(message)-> None:
+    """
+    Aim:   Mark the email as spam
+    Input: Message object
+    """
     message.mark_as_spam()
-    return 1
-   
 
-"""
-markAsImportant
-Aim:   Mark the email as urgent
-Input: Message object
-"""
-def markAsImportant(message)-> int:
+def mark_as_important(message)-> None:
+    """
+    Aim:   Mark the email as urgent
+    Input: Message object
+    """
     message.mark_as_important()
-    return 1
 
-
-
+def delete_label(message , label: str)-> None:
+    """
+    Aim:   Delete the label
+    """
+    message.remove_label(label)
+    logging.debug("Label deleted")
 """
 functions i need to implement
 delete_labal

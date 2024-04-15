@@ -1,0 +1,9 @@
+client_secret.json
+gmail_token.json
+archive.py
+main.py
+docs.txt
+templates
+__pycache__
+.venv
+tests.py
