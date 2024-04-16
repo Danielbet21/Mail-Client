@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}User{% endblock %}
+{% block content %}
+{% if not messages %}
+<p>No messages</p>
+{% else %}
+{% for msg in messages %}
+    <p style="margin-left: 20px;"><strong>Sender:</strong> {{ msg.sender }}</p>
+    <p style="margin-left: 20px;"><strong>Subject:</strong> {{ msg.subject }}</p>
+    <p style="margin-left: 20px;"><strong>Date:</strong> {{ msg.date }}</p>
+    <!--"Delete" button -->
+    <div class="btn-group" style="margin-left: 20px;">
+        <form action="{{ url_for('move_to_garbage') }}" method="post">
+            <input type="hidden" name="message_id" value="{{ msg.id }}">
+            <button type="submit" class="btn btn-outline-danger">Delete</button>
+        </form>
+
+        <!-- Dropdown menu -->
+        <div class="btn-group">
+            <button type="button" class="btn btn-outline-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                Labels
+            </button>
+            <div class="dropdown-menu">
+                <!-- Loop through labels and create a dropdown item for each one -->
+                {% for label in labels %}
+                <form action="{{ url_for('change_label') }}" method="post">
+                    <input type="hidden" name="message_id" value="{{ msg.id }}">
+                    <input type="hidden" name="wanted_label" value="{{ label.name }}">
+                    <button type="submit" class="btn btn-outline-primary dropdown-item">
+                        {{ label.name }}
+                    </button>
+                </form>
+            {% endfor %}
+            </div>
+        </div>
+    </div>
+    <hr style="margin-left: 20px;">
+{% endfor %}
+{% endif %}
+{% endblock %}

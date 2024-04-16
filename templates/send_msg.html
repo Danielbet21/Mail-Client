@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<form action="/api/v1/gmail/messages/send" method="post">
+    <label for="to">To:</label><br>
+    <input type="email" id="to" name="to"><br>
+    <label for="subject">Subject:</label><br>
+    <input type="text" id="subject" name="subject"><br>
+    <label for="message">Message:</label><br>
+    <textarea id="message" name="message"></textarea><br>
+    <input type="submit" value="Send Message">
+</form>
+{% endblock %}
