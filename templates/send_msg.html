@@ -1,13 +1,32 @@
 {% extends "base.html" %}
-{% block title %}Home{% endblock %}
+{% block title %}DB | Send {% endblock %}
 {% block content %}
-<form action="/api/v1/gmail/messages/send" method="post">
-    <label for="to">To:</label><br>
-    <input type="email" id="to" name="to"><br>
-    <label for="subject">Subject:</label><br>
-    <input type="text" id="subject" name="subject"><br>
-    <label for="message">Message:</label><br>
-    <textarea id="message" name="message"></textarea><br>
+<form action="/api/v1/gmail/messages/send" method="post" style="margin-left: 20px;">
+    <div class="form-floating mb-3" style="width: 300px;">
+        <input type="email" class="form-control" id="floatingInputInvalid" name="to" placeholder="name@example.com">
+    </div>
+    <div class="form-floating mb-3" style="width: 300px;">
+        <input type="text" class="form-control" id="floatingSubject" name="subject" placeholder="Subject">
+        <label for="floatingSubject">Subject</label>
+    </div>
+    <div class="form-floating mb-3" style="width: 1300px;">
+        <textarea class="form-control" id="floatingMessage" name="message" placeholder="Message"></textarea>
+        <label for="floatingMessage">Message</label>
+    </div>
     <input type="submit" value="Send Message">
 </form>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<!-- jQuery usage for dynamic validation for the email field -->
+<script>
+$(document).ready(function() {
+    $('#floatingInputInvalid').on('input', function() {
+        var input=$(this);
+        var re = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+        var is_email=re.test(input.val());
+        if(is_email){input.removeClass("is-invalid").addClass("is-valid");}
+        else{input.removeClass("is-valid").addClass("is-invalid");}
+    });
+});
+</script>
 {% endblock %}

@@ -1,9 +1,12 @@
-from datetime import timedelta
-from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
-import sys
-from simplegmail import Gmail
-from simplegmail.query import construct_query
+from datetime import date
+import json
 import logging
+import sys
+
+from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
+from simplegmail.query import construct_query
+from email.utils import parseaddr
+from simplegmail import Gmail
 
 app = Flask(__name__)
 app.secret_key = "secret"
@@ -12,9 +15,16 @@ sys.stdout.reconfigure(encoding='utf-8')
 logging.basicConfig(level=logging.INFO)
 
 
+def get_labels():
+    """
+    get all the labels the current user have
+    """
+    return gmail.list_labels()
+
+
 @app.route("/")
 def home():
-    return redirect(url_for("user", usr="Daniel", messages=[]))
+    return redirect(url_for("get_brief_of_today"))
 
 
 @app.route("/api/v1/gmail/login", methods=["POST", "GET"])
@@ -24,32 +34,68 @@ def login():
 
 @app.route("/api/v1/gmail/logout")
 def logout():
-    return redirect(url_for("login"))
+    pass
 
 
-@app.route("/api/v1/gmail/user/<string:usr>/<messages>")
-def user(usr, messages):
-    labels = gmail.list_labels()  # get all the labels the current user have
-    if messages == "[]":
-        messages = get_messages()
+@app.route("/api/v1/gmail/user/")
+def user():
+    messages = get_messages_INBOX()
+    return render_template("user.html", messages=messages, labels=get_labels(),
+                           get_name=get_name_from_message, title="Inbox")
 
-    return render_template("user.html", messages=messages, name=usr, labels=labels)
+
+def get_name_from_message(message):
+    """
+    return's the name of the sender (jhon doe <jhondoe@gmail.com> ==> jhon doe)
+    """
+    return parseaddr(message)[0]
 
 
 @app.route('/api/v1/gmail/messages', methods=['GET'])
-def get_messages():
+def get_messages_INBOX():
     try:
-        messages = gmail.get_messages()
+        params = {
+            "labels": "INBOX"
+        }
+        messages = gmail.get_messages(query=construct_query(params))
         return messages
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/v1/gmail/messages/brief_of_today', methods=['GET'])
+def get_brief_of_today():
+    try:
+        today = date.today()
+        param = {
+            "after": today
+        }
+        messages = gmail.get_messages(query=construct_query(**param))
+        return render_template("user.html", messages=messages, title="Today's Brief",
+                               labels=get_labels(), get_name=get_name_from_message)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/v1/gmail/messages/<string:str_date>/<string:end_date>', methods=['GET'])
 def get_messages_by_date(str_date, end_date):
+    """
+    - end_date and str_date should be in the format of "YYYY-MM-DD"
+    - end_date is not included in the search
+    Currently, the emails includes all the the messages sent and resicved by & from the user
+    """
     try:
-        messages = gmail.get_messages(query=f"after={str_date}, before={end_date}")
-        return render_template("user.html", messages=messages, name="Daniel")
+        dates = {
+            "after": str_date,
+            "before": end_date
+        }
+        logging.info(str_date)
+        logging.info(end_date)
+
+        messages = gmail.get_messages(query=construct_query(**dates))
+        logging.info(messages)
+        return render_template("user.html", messages=messages, title="Message By Date",
+                               labels=get_labels(), get_name=get_name_from_message)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -58,7 +104,7 @@ def get_messages_by_date(str_date, end_date):
 def get_messages_by_source(source):
     try:
         messages = gmail.get_messages(query=f"from: {source}")
-        return render_template("user.html", messages=messages, name="Daniel")
+        return redirect(url_for("user"))
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -67,7 +113,7 @@ def get_messages_by_source(source):
 def get_unread_messages():
     try:
         messages = gmail.get_unread_inbox()
-        return render_template("user.html", messages=messages, name="Daniel")
+        return redirect(url_for("user"))
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -76,36 +122,41 @@ def get_unread_messages():
 def get_messages_by_label(wanted_label):
     try:
         messages = gmail.get_messages(query=f"label: {wanted_label}")
-        return render_template("user.html", messages=messages, name="Daniel")
+        return redirect(url_for("user"))
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/v1/gmail/messages/send', methods=['POST'])
+@app.route('/api/v1/gmail/messages/send', methods=['POST', 'GET'])
 def send_message():
-    try:
-        to = request.form['to']
-        subject = request.form['subject']
-        message = request.form['message']
-        data = {
-            "to": to,
-            "sender": "danielbetzalel16@gmail.com",
-            "subject": subject,
-            "msg_html": message,
-            "msg_plain": message,
-            "signature": True
-        }
-        sent = gmail.send_message(**data)
-        redirect("user")
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    if request.method == 'POST':
+        try:
+            to = request.form['to']
+            subject = request.form['subject']
+            message = request.form['message']
+            if not to or not message:
+                return redirect(url_for("send_message"))
+            data = {
+                "to": to,
+                "sender": "danielbetzalel16@gmail.com",
+                "subject": subject,
+                "msg_html": message,
+                "msg_plain": message,
+                "signature": True
+            }
+            sent = gmail.send_message(**data)
+            return redirect(url_for("user"))
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    else:
+        return render_template("send_msg.html")
 
 
 @app.route('/api/v1/gmail/messages/move_to_garbage', methods=['POST'])
-def move_to_garbage(message):
+def move_to_garbage(message=None):
     try:
         if not message:
-         desired_message_id = request.form['message_id']
+            desired_message_id = request.form['message_id']
         else:
             desired_message_id = message.id
         messages = gmail.get_messages()
@@ -115,7 +166,7 @@ def move_to_garbage(message):
         # every msg will be "read" if it goes to the trash
         the_msg.mark_as_read()
         the_msg.trash()
-        return redirect(url_for("user", usr="Daniel", messages=[]))
+        return redirect(url_for("user"))
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -130,12 +181,12 @@ def change_label():
         for message in messages:
             if message.id == desired_message_id:
                 the_msg = message
-                
+
         if desired_label == "TRASH":
             move_to_garbage(message=the_msg)
-        
+
         the_msg.add_label(desired_label)
-        return redirect(url_for("user", usr="Daniel", messages=[]))
+        return redirect(url_for("user"))
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
