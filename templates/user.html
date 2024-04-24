@@ -15,7 +15,8 @@
     <style>
         .navbar-brand {
             font-weight: bold; 
-            font-family: 'Courier New', monospace; 
+            /* font-family: 'Courier New', monospace;  */
+            Font-family: candara;
             font-size: 2.5rem;
         }
     </style>
@@ -23,7 +24,8 @@
         .nav-item {
             font-weight: bold; 
             margin-right: 10px; 
-            font-family: 'Courier New', monospace;
+            /* font-family: 'Courier New', monospace; */
+            Font-family: candara;
         }
     </style>
     <style>
@@ -32,12 +34,31 @@
             text-align: left; /* Align the text to the left */
         }
     </style>
+    <style>
+        .flash-message {
+            font-size: 20px; 
+            color: rgb(6, 178, 112); 
+            background-color: whitesmoke; 
+            padding: 10px; 
+            margin-bottom: 10px; 
+        }
+    </style>
     <title>{% block title %}DB| {{title}}{% endblock %}</title>
 </head>
 <body>
+    <!-- Display flash messages -->
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flash-message">
+                {% for message in messages %}
+                    {{ message }}
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
     <!-- Navigation bar code -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <a class="navbar-brand" href="/">DB</a>
+        <a class="navbar-brand" href="/api/v1/gmail/messages/brief_of_today">DB</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
                 aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -45,9 +66,6 @@
 
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav mr-auto">
-                <li class="nav-item active">
-                    <a class="nav-link" href="/">Home <span class="sr-only">(current)</span></a>
-                </li>
                 <li class="nav-item active">
                     <a class="nav-link" href="/api/v1/gmail/messages/send">send</a>
                 </li>

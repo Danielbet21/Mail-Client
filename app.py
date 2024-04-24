@@ -33,11 +33,11 @@ def home():
 def login():
     if request.method == 'POST':
         email = request.form['email']
-       # Check if the database already exists
+        
         db_name = get_name_from_email(email)
         if db_name not in client.list_database_names():
             make_db(email)   
-        return redirect(url_for("user"))
+        return redirect(url_for("get_brief_of_today"))
     return render_template("login.html")
 
 
@@ -94,6 +94,9 @@ def get_brief_of_today():
             "after": today
         }
         messages = gmail.get_messages(query=construct_query(**param))
+        if len(messages) == 0:
+            flash("No messages for today...  Moving to your Inbox")
+            return redirect(url_for("user"))
         return render_template("user.html", messages=messages, title="Today's Brief",
                                labels=get_labels(), get_name=get_name_from_message)
     except Exception as e:

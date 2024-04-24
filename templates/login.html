@@ -22,12 +22,27 @@
         justify-content: center;
         height: 50vh;
     }
+    .commet-center-label {
+        display: block;
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
+        font-size: 15px;
+        Font-family: candara;
+    }
+    .form-control {
+        font-size: 20px; 
+        font-family: candara;
+        width: 150%; 
+        max-width: 500px; 
+        margin-right: 250px; 
+    }
 </style>
 <form method="POST" class="center-form">
     <div class="mb-3">
       <label for="exampleInputEmail1" class="form-label center-label">Enter your email address</label>
       <input type="email" class="form-control" id="exampleInputEmail1" name="email" aria-describedby="emailHelp" placeholder="Email address">
-      <div id="emailHelp" class="form-text center-label">We'll never share your email with anyone else.</div>
+      <div id="emailHelp" class="form-text commet-center-label">We'll never share your email with anyone else.</div>
     </div>
     <button type="submit" class="btn btn-primary center-button">Submit</button>
 </form>
