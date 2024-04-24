@@ -2,6 +2,7 @@ from datetime import date
 import json
 import logging
 import sys
+import pymongo
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
 from simplegmail.query import construct_query
@@ -13,6 +14,7 @@ app.secret_key = "secret"
 gmail = Gmail()
 sys.stdout.reconfigure(encoding='utf-8')
 logging.basicConfig(level=logging.INFO)
+client = pymongo.MongoClient("mongodb://localhost:27017/")
 
 
 def get_labels():
@@ -24,12 +26,30 @@ def get_labels():
 
 @app.route("/")
 def home():
-    return redirect(url_for("get_brief_of_today"))
+    return redirect(url_for("login"))
 
 
 @app.route("/api/v1/gmail/login", methods=["POST", "GET"])
 def login():
-    pass
+    if request.method == 'POST':
+        email = request.form['email']
+       # Check if the database already exists
+        db_name = get_name_from_email(email)
+        if db_name not in client.list_database_names():
+            make_db(email)   
+        return redirect(url_for("user"))
+    return render_template("login.html")
+
+
+def make_db(email):
+    """
+    makes a database for the user with the email as the name & creates a collection for each label
+    for fast access to the messages 
+    """
+    db = client[get_name_from_email(email)]
+    labels = get_labels()
+    for label in labels:
+        db.create_collection(label.name)
 
 
 @app.route("/api/v1/gmail/logout")
@@ -49,6 +69,9 @@ def get_name_from_message(message):
     return's the name of the sender (jhon doe <jhondoe@gmail.com> ==> jhon doe)
     """
     return parseaddr(message)[0]
+
+def get_name_from_email(email):
+    return str(email.split('@')[0])
 
 
 @app.route('/api/v1/gmail/messages', methods=['GET'])
