@@ -36,7 +36,8 @@ def login():
         
         db_name = get_name_from_email(email)
         if db_name not in client.list_database_names():
-            make_db(email)   
+            make_db(email)   # TODO: make this async
+        init_db(email)
         return redirect(url_for("get_brief_of_today"))
     return render_template("login.html")
 
@@ -49,9 +50,35 @@ def make_db(email):
     db = client[get_name_from_email(email)]
     labels = get_labels()
     for label in labels:
-        db.create_collection(label.name)
+        temp = db.create_collection(label.name)
 
 
+def init_db(email):
+    db = client[get_name_from_email(email)]
+    collections = db.list_collection_names()
+    for coll in collections:
+        messages = gmail.get_messages(query=f"label: {coll}")
+        fields = ["sender", 
+                  "subject", 
+                  "date", 
+                  "snippet",
+                  "user_id",
+                  "id",
+                  "thread_id",
+                  "recipient",
+                  "labels_id",
+                  "plain", 
+                  "html",
+                  "headers",
+                  "to", 
+                  "cc",
+                  "bcc"] #TODO: add attachments filed?
+        if messages:
+            messages = [message.__dict__ for message in messages] # convert to be valid for mongoDB
+            messages = [{field: message.get(field, None) for field in fields} for message in messages] # filter the fields
+            db[coll].insert_many(messages)
+    
+    
 @app.route("/api/v1/gmail/logout")
 def logout():
     pass
