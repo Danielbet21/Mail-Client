@@ -8,3 +8,4 @@ __pycache__
 tests.py
 gmail.py
 google_sign_in.html
+loading.html
