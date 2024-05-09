@@ -8,37 +8,44 @@
             overflow-y: auto; 
             border: 1px solid #ccc; 
             border-radius: 5px; 
+            
         }
-    </style>
-    <style>
+    
         .navbar-brand {
             font-weight: bold; 
-            /* font-family: 'Courier New', monospace;  */
-            Font-family: candara;
+            Font-family: 'Disket Mono', monospace;
             font-size: 2.5rem;
         }
-    </style>
-    <style>
+    
         .nav-item {
             font-weight: bold; 
             margin-right: 10px; 
-            /* font-family: 'Courier New', monospace; */
-            Font-family: candara;
+            Font-family: 'Disket Mono', monospace;
         }
-    </style>
-    <style>
+   
         .dropdown-menu .dropdown-item {
-            font-size: 1rem; /* Adjust the font size */
-            text-align: left; /* Align the text to the left */
+            font-size: 1rem; 
+            text-align: left; 
+            Font-family: 'Disket Mono', monospace;
         }
-    </style>
-    <style>
+   
         .flash-message {
             font-size: 20px; 
             color: rgb(6, 178, 112); 
             background-color: whitesmoke; 
             padding: 10px; 
             margin-bottom: 10px; 
+        }
+    
+        .btn-outline-success {
+            font-family: 'Disket Mono', monospace;
+        }
+        .container {
+            overflow: hidden;
+        }
+        .container img {
+            max-width: 100%;
+            height: auto;
         }
     </style>
     <title>{% block title %}DB | {{title}}{% endblock %}</title>
@@ -86,7 +93,7 @@
                 </li>
             </ul>
             <form class="form-inline my-2 my-lg-0">
-                <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
+                <input class="form-control mr-sm-2" type="search"  aria-label="Search">
                 <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
             </form>
         </div>
@@ -100,12 +107,14 @@
     {% for msg in messages %}
         {% if "UNREAD" in msg.label_ids %}
             <p style="margin-left: 20px;"><strong>{{ get_name(msg.sender) }}</strong></p>
-            <p style="margin-left: 20px;"><strong>{{ msg.subject }}</strong></p>
-            <p style="margin-left: 20px;"><strong>{{ msg.date }}</strong></p>
+            <p style="margin-left: 20px;"><strong><a href="/api/v1/gmail/messages/show_message_info/{{ msg.id }}/{{ msg.label_ids }}" style="color: black;">{{ msg.subject }}</a></strong></p>
+            <p style="margin-left: 20px;"><strong>{{ msg.snippet }}</strong></p>
+            <p style="margin-left: 20px;"><strong>{{ msg.date[:-6] }}</strong></p>
         {% else %}
-            <p style="margin-left: 20px;">{{ get_name(msg.sender) }}</p>
-            <p style="margin-left: 20px;">{{ msg.subject }}</p>
-            <p style="margin-left: 20px;">{{ msg.date }}</p>
+            <p style="margin-left: 20px;"><strong>{{ get_name(msg.sender) }}</strong></p>
+            <p style="margin-left: 20px;"><a href="/api/v1/gmail/messages/show_message_info/{{ msg.id }}/{{ msg.label_ids }}" style="color: black;">{{ msg.subject }}</a></p>
+            <p style="margin-left: 20px;">{{ msg.snippet }}</p>
+            <p style="margin-left: 20px;">{{ msg.date[:-6] }}</p>
         {% endif %}
         <!--"Delete" button -->
         <div class="btn-group" style="margin-left: 20px;">

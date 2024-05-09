@@ -2,12 +2,14 @@ import json
 import logging
 import sys
 from datetime import date
-
 import os
 import webbrowser
 from threading import Timer
 
 import pymongo
+
+import data_base
+import shared_resources
 
 from email.utils import parseaddr
 
@@ -34,25 +36,19 @@ gmail = Gmail()
 logging.basicConfig(level=logging.INFO)
 
 
-client = pymongo.MongoClient("mongodb://localhost:27017/")
-
-
 #--------------------------------------------------------------------------------------------------------------------------------------
 #                                                            Functions
 
 
 def get_message_by_id(desired_message_id: str):
-
-    the_msg = None
     
     messages = gmail.get_messages()
-    
+        
     for message in messages:
         if message.id == desired_message_id:
-            the_msg = message
-            break
+            return message
 
-    return the_msg
+   
 
 
 
@@ -61,158 +57,13 @@ def get_email_sender_name(message: str) -> str:
     
     return parseaddr(message)[0]
 
-
-
-
-def get_name_from_email(email) -> str:
-
-    return str(email.split('@')[0])
-
-
-
-
-def purify_message(messages) -> list:
-    """
-
-
-    makes the messages list to be valid for mongoDB
-    """
-
-
-    fields = ["sender", 
-
-              "subject", 
-
-              "date", 
-
-              "snippet",
-
-              "user_id",
-
-              "id",
-
-              "thread_id",
-
-              "recipient",
-
-              "labels_id",
-
-              "plain", 
-
-              "html",
-
-              "headers",
-
-              "to", 
-
-              "cc",
-
-              "bcc"]  # TODO: add attachments field?
-    
-
-    if isinstance(messages, list):
-
-        messages = [message.__dict__ for message in messages]  # convert messages to be a list of dictionaries
-
-        messages = [{field: message.get(field, None) for field in fields} for message in messages]  # filter the fields
-
-    else:
-
-        # If it's a single message
-
-        message_dict = messages.__dict__
-
-        messages = {field: message_dict.get(field, None) for field in fields}
-
-    return messages
-
-
-
-def make_db(email) -> None:
-    """
-
-    makes a database for the user with the email as the name & creates a collection for each label
-
-    for fast access to the messages 
-    """
-
-    db = client[get_name_from_email(email)]
-
-
-    labels = gmail.list_labels()
-
-
-
-    for label in labels:
-
-        temp = db.create_collection(label.name)
-
-
-
-
-def init_db(email) -> None:
-
-
-
-    db = client[get_name_from_email(email)]
-
-
-
-    collections = db.list_collection_names()
-
-
-
-    for coll in collections:
-
-
-
-        messages = gmail.get_messages(query=f"label: {coll}")
-
-
-        messages = purify_message(messages)
-
-
-        db[coll].insert_many(messages)
-
-
-
-def update_db(email) -> None:
-    """
-
-    Get the messages from the user gmail account and check if there's a message that dosent exist in the collection
-
-    by checking the id & recipient of the message
-    """
-
-    db = client[get_name_from_email(email)] 
-
-
-    collections = db.list_collection_names() 
-
-
-    for i in range(len(collections)): 
-
-        data = { "label" : collections[i]}
-
-        messages = gmail.get_messages(query=construct_query(**data))
-        
-
-        for j in range(len(messages)):
-
-            if db[collections[i]].find_one({"id": messages[j].id, "recipient": messages[j].recipient}) is None:
-
-                db[collections[i]].insert_many(purify_message(messages))
     
     
 
 def get_messages_inbox():
 
         params = {
-
-
             "labels": "INBOX"
-
-
         }
 
         messages = gmail.get_messages(query=construct_query(params))
@@ -228,6 +79,7 @@ def get_messages_inbox():
 @app.route("/")
 
 def home():
+    data_base.update_db("danielbetzalel16")
     return redirect(url_for("login"))
 
 
@@ -244,24 +96,24 @@ def login():
 
         full_email = request.form['email']
     
-        db_name = get_name_from_email(full_email)
+        db_name = shared_resources.get_name_from_email(full_email)
 
 
         session['email'] = db_name
         
 
-        if db_name not in client.list_database_names():
+        if db_name not in shared_resources.client.list_database_names():
 
-            make_db(db_name)  
+            data_base.make_db(db_name)  
         
 
-        db_list = client.list_database_names()
+        db_list = shared_resources.client.list_database_names()
 
         if db_name not in db_list:
-            init_db(db_name)
+            data_base.init_db(db_name)
 
 
-        update_db(db_name)
+        data_base.update_db(db_name)
 
         return redirect(url_for("get_brief_of_today"))
 
@@ -358,7 +210,6 @@ def get_messages_by_date(str_date: str, end_date: str):
 
     messages = gmail.get_messages(query=construct_query(**dates))
 
-
     return render_template("user.html", messages=messages, title="Message By Date", labels=gmail.list_labels(), get_name=get_email_sender_name)
 
 
@@ -394,11 +245,40 @@ def get_messages_by_label(wanted_label):
     return render_template("user.html", messages=messages, labels=gmail.list_labels(), get_name=get_email_sender_name, title=wanted_label)
 
 
-
+@app.route('/api/v1/gmail/messages/show_message_info/<message_id>/<labels>', methods=['GET'])
+def show_message_info(message_id,labels):
+    found = False
+    message1 = None
+        
+    data_base.update_db(session['email']) 
+    # connect to the db
+    db = shared_resources.client[session['email']]
+    
+    # cleaning the labels
+    label_names = shared_resources.get_labels(labels, 0)
+        
+    # search for the message in the db
+    for label in label_names:
+        collection = db[label]
+        message = collection.find_one({"id": str(message_id).strip()})
+        if message:
+            found = True
+            break
+        
+    # update the gmail webpage
+    message1 = get_message_by_id(message_id)
+    
+    if "UNREAD" in label_names:
+        message1.mark_as_read()
+        #update db
+        if found:    
+            target_collection = db["UNREAD"]
+            target_collection.delete_one({"id": message['id']}) 
+            
+    return render_template("message_info.html",title="message info" , message=message)
 
 
 @app.post('/api/v1/gmail/messages/send')
-
 def send_message():
 
 
@@ -476,7 +356,7 @@ def move_to_garbage():
     email = session['email']
 
 
-    db = client[get_name_from_email(email)]
+    db = shared_resources.client[shared_resources.get_name_from_email(email)]
 
 
 
@@ -490,7 +370,7 @@ def move_to_garbage():
 
     trash_collection = db["TRASH"]
 
-    trash_collection.insert_one(purify_message(msg))
+    trash_collection.insert_one(data_base.purify_message(msg))
     
 
     # every msg must be read in order to go into the trash
@@ -517,9 +397,6 @@ def add_label_to_message():
 
         the_msg = get_message_by_id(desired_message_id)
 
-        logging.info(f"message {the_msg} ============ desired_message_id: {desired_message_id}===================================")
-
-
 
         if desired_label == "TRASH":
 
@@ -539,7 +416,7 @@ def add_label_to_message():
 
         email = session['email']
     
-        db = client[get_name_from_email(email)]    
+        db = shared_resources.client[shared_resources.get_name_from_email(email)]    
 
         anti_inbox = gmail.list_labels()
         anti_inbox.remove("INBOX")
@@ -551,7 +428,7 @@ def add_label_to_message():
         
 
         target_collection = db[desired_label]
-        target_collection.insert_one(purify_message(the_msg))
+        target_collection.insert_one(data_base.purify_message(the_msg))
         
 
         return redirect(url_for("get_brief_of_today"))

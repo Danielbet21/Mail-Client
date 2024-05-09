@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %} DB | {{ title }}{% endblock %}
+
+{% block content %}
+    <style>
+        .message-content img {
+            max-width: 100%;
+            max-height: 500px;  /* adjust as needed */
+            height: auto;
+        }
+        .navbar, .container {
+            direction: ltr;
+        }
+        .navbar {
+            width: 100vw !important;
+            position: relative !important;
+            left: 50% !important;
+            right: 50% !important;
+            margin-left: -50vw !important;
+            margin-right: -50vw !important;
+        }
+    </style>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <p><strong>subject:</strong> {{ message.subject }}</p>
+                <p><strong>sender:</strong> {{ message.sender }}</p>
+                <p><strong>date:</strong> {{ message.date[:-6] }}</p>
+                <div class="message-content">
+                    <div>{{ message.html|safe }}</div>
+                </div>
+                <p>{{ message.text }}</p>
+                {% if message.attachments != [] %}
+                <p>{{ message.attachments }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

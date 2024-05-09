@@ -1,6 +1,19 @@
-{% extends "base.html" %}
-{% block title %} DB | Login {% endblock %}
-{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+<title>{% block title %}DB | Login {% endblock %}</title>
+</head>
+<body>
+<style>
+    .flash-message {
+        font-size: 20px; 
+        color: rgb(6, 178, 112); 
+        background-color: whitesmoke; 
+        padding: 10px; 
+        margin-bottom: 10px; 
+    }
+</style>
 <style>
     .center-label {
         display: block;
@@ -8,7 +21,7 @@
         margin-left: auto;
         margin-right: auto;
         font-size: 30px;
-        Font-family: candara;
+        Font-family: 'Disket Mono', monospace;
     }
     .center-button {
         display: block;
@@ -28,23 +41,42 @@
         margin-left: auto;
         margin-right: auto;
         font-size: 15px;
-        Font-family: candara;
+        Font-family: 'Disket Mono', monospace;
     }
     .form-control {
         font-size: 20px; 
-        font-family: candara;
+        font-family: 'Disket Mono', monospace;
         width: 150%; 
         max-width: 500px; 
         margin-right: 250px; 
     }
+    .welcome-label {
+        display: block;
+        font-weight: bold;
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
+        font-size: 30px;
+        Font-family: 'Disket Mono', monospace;
+    }
+    .center-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: calc(100vh - 60px); /* Adjust as needed */
+    }
 </style>
-<form method="POST" class="center-form">
-    <div class="mb-3">
-      <label for="exampleInputEmail1" class="form-label center-label">Enter your email address</label>
-      <input type="email" class="form-control" id="exampleInputEmail1" name="email" aria-describedby="emailHelp" placeholder="Email address">
-      <div id="emailHelp" class="form-text commet-center-label">We'll never share your email with anyone else.</div>
-    </div>
-    <button type="submit" class="btn btn-primary center-button">Submit</button>
-</form>
-        
-{% endblock %}
+<div>
+</div>
+<div class="center-container">
+    <h1 class="welcome-label">Welcome to Mail Assistant DB</h1>
+    <form method="POST" class="center-form">
+        <div class="mb-3">
+        <label for="exampleInputEmail1" class="form-label center-label">Enter your email address</label>
+        <input type="email" class="form-control" id="exampleInputEmail1" name="email" aria-describedby="emailHelp" placeholder="Email address">
+        <div id="emailHelp" class="form-text commet-center-label">We'll never share your email with anyone else.</div>
+        </div>
+        <button type="submit" class="btn btn-primary center-button">Submit</button>
+    </form>
+</div>
