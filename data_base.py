@@ -9,23 +9,18 @@ Functions:
 - update_db(email): Updates the database with new email data.
 - purify_message(messages): Prepares email messages for database insertion.
 """
-
+from constent import *
 import shared_resources
 import pymongo
 from simplegmail import Gmail
 from simplegmail.query import construct_query
-# from googleapiclient.discovery import build
-# from google.oauth2.credentials import Credentials
 import logging
 
 logging.basicConfig(level=logging.INFO)
 gmail = Gmail()
 
-# Gmail API setup
-# creds = Credentials.from_authorized_user_file('gmail_token.json')
-# service = build('gmail', 'v1', credentials=creds)
+
 categories = ["CATEGORY_SOCIAL", "CATEGORY_PROMOTIONS", "CATEGORY_UPDATES", "CATEGORY_FORUMS", "CATEGORY_PERSONAL", "CATEGORY_PRIMARY"]
-# user_id = 'me'
 
 
 
@@ -37,16 +32,15 @@ def init_db(email) -> None:
 
     collections = db.list_collection_names()
 
-
     for coll in collections:
-
+        
 
         messages = gmail.get_messages(query=f"label: {coll}")
 
 
         messages = purify_message(messages)
-
-
+        
+        
         db[coll].insert_many(messages)
 
 
@@ -61,9 +55,14 @@ def make_db(email) -> None:
     labels = gmail.list_labels()
 
     for label in labels:
-
-        temp = db.create_collection(label.name)
-
+        db.create_collection(label.name)
+    
+    
+    db.create_collection("Filter")
+    filter_collection = db["Filter"]
+   # make a dict of the labels that contian a list as valuse
+    filter_labels = {label.name: [] for label in labels}
+    filter_collection.insert_one(filter_labels)
 
 
 def update_db(email) -> None:
@@ -73,14 +72,11 @@ def update_db(email) -> None:
 
     by checking the id & recipient of the message
     """
-        
     shadow_categories = {category: {} for category in categories}
     
     db = shared_resources.client[shared_resources.get_name_from_email(email)]
     collections = db.list_collection_names() 
         
-   
-
     for i in range(len(collections)): 
         data = { "label" : collections[i]}
         messages = gmail.get_messages(query=construct_query(**data))
@@ -99,75 +95,47 @@ def update_db(email) -> None:
                      shadow_categories[labels_of_message[t]][messages[j].id] = messages[j]
                
             if db[collections[i]].find_one({"id": messages[j].id, "recipient": messages[j].recipient}) is None:
+                logging.info(f"message --- {messages[j].id} not in {collections[i]} ==================================================")
                 # clean the collection to avoid duplicates
                 db[collections[i]].delete_many({})
                 db[collections[i]].insert_many(purify_message(messages))
+            
         
     # update the shadow categories
     for category in categories:
         if list(shadow_categories[category].values()) != []:
             db[category].delete_many({})
+            logging.info(f"SHADOW inserted message in category --- {category} ======================")
             db[category].insert_many(purify_message(list(shadow_categories[category].values())))
 
-    
-    
-    
-    
-    
-    
-                
 
-def purify_message(messages) -> list:
+
+def labels_to_list(labels)-> list[list[str]]:
+    return [[label.name, label.id] for label in labels]
+
+
+
+def add_filter_collection(name, label):
+    db = shared_resources.client[shared_resources.get_name_from_email(email)]
+    filter_collection = db["Filter"]
+    
+    
+    
+
+
+def purify_message(messages) -> list[dict]:
     """
-
-
     makes the messages list to be valid for mongoDB
     """
-
-
-    fields = ["sender", 
-
-              "subject", 
-
-              "date", 
-
-              "snippet",
-
-              "user_id",
-
-              "id",
-
-              "thread_id",
-
-              "recipient",
-
-              "labels_id",
-
-              "plain", 
-
-              "html",
-
-              "headers",
-              
-              "to", 
-
-              "cc",
-
-              "bcc"]  # TODO: add attachments field?
-    
-
+    fields = Constent.fields
+    logging.info(f"fields: {fields}")
+   
     if isinstance(messages, list):
-
-        messages = [message.__dict__ for message in messages]  # convert messages to be a list of dictionaries
-
-        messages = [{field: message.get(field, None) for field in fields} for message in messages]  # filter the fields
-
-    else:
-
-        # If it's a single message
-
+        messages = [message.__dict__ for message in messages]  
+        messages = [Constent.filter_fields(message, labels_to_list) for message in messages]  
+   # if the messages is a single message, message is an object from the simplegmail library
+    elif isinstance(messages, simplegmail.message.Message):
         message_dict = messages.__dict__
-
-        messages = {field: message_dict.get(field, None) for field in fields}
+        messages = Constent.filter_fields(message_dict, labels_to_list)
 
     return messages

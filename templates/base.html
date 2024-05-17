@@ -3,6 +3,7 @@
 <head>
     {% block head %}{% endblock %}
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
 <style>
     .labels-menu {
         max-height: 200px; 
@@ -10,56 +11,52 @@
         border: 1px solid #ccc; 
         border-radius: 5px; 
         }
-</style>
-<style>
+
     .navbar-brand {
         font-weight: bold; 
-        font-family: 'Disket Mono', monospace;
-        font-size: 2.5rem;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 2.2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background-color:#6ee7bd;
+        color: white;
     }
-</style>
-<style>
+
     .nav-item {
         font-weight: bold; 
         margin-right: 10px; 
         font-family: 'Disket Mono', monospace;
     }
-</style>
-<style>
+
     .dropdown-menu .dropdown-item {
         font-size: 1rem; 
         text-align: left;
         font-family: 'Disket Mono', monospace;
     }
+    
+    .flash-message {
+        font-size: 20px; 
+        color: rgb(6, 178, 112); 
+        background-color: whitesmoke; 
+        padding: 10px; 
+        margin-bottom: 10px; 
+    }
+    .btn-outline-success {
+        font-family: 'Disket Mono', monospace;
+    }
     </style>
-     <style>
-        .flash-message {
-            font-size: 20px; 
-            color: rgb(6, 178, 112); 
-            background-color: whitesmoke; 
-            padding: 10px; 
-            margin-bottom: 10px; 
-        }
-        .btn-outline-success {
-            font-family: 'Disket Mono', monospace;
-        }
-    </style>
+
 <title>{% block title %}{% endblock %}</title>
 </head>
 <body>
-    <!-- Display flash messages -->
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <div class="flash-message">
-                {% for message in messages %}
-                    {{ message }}
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endwith %}
-
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <a class="navbar-brand" href="/api/v1/gmail/messages/brief_of_today">DB</a>
+    <a class="navbar-brand" href="/api/v1/gmail/messages/brief_of_today">
+        <div>Deft.B</div>
+    </a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
             aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -70,7 +67,7 @@
             <li class="nav-item active">
                 <a class="nav-link" href="/api/v1/gmail/user/">Inbox</a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item active">
                 <a class="nav-link" href="/api/v1/gmail/messages/send">Send</a>
             </li>
             <li class="nav-item dropdown active">
@@ -80,8 +77,10 @@
                 </a>
                 <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                     <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/unread">Unread</a>
-                    <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/spam">Spam</a>
-                    <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/trash">Trash</a>
+                        <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/spam">Spam</a>
+                        <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/trash">Trash</a>
+                        <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/CATEGORY_PERSONAL">Personal</a>
+                        <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/CATEGORY_SOCIAL">Social</a>
                 </div>
             </li>
             <li class="nav-item">
