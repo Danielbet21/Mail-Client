@@ -5,26 +5,33 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
 <style>
-    .labels-menu {
-        max-height: 200px; 
-        overflow-y: auto; 
-        border: 1px solid #ccc; 
-        border-radius: 5px; 
+        .labels-menu {
+            max-height: 200px; 
+            overflow-y: auto; 
+            border: 1px solid #ccc; 
+            border-radius: 5px; 
         }
 
-    .navbar-brand {
-        font-weight: bold; 
-        font-family: 'Orbitron', sans-serif;
-        font-size: 2.2rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100px;
-        height: 100px;
-        border-radius: 50%;
-        background-color:#6ee7bd;
-        color: white;
-    }
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000; 
+         }
+    
+         .navbar-brand {
+            font-weight: bold; 
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background-color:#6ee7bd;
+            color: white;
+        }
 
     .nav-item {
         font-weight: bold; 
@@ -48,51 +55,75 @@
     .btn-outline-success {
         font-family: 'Disket Mono', monospace;
     }
+    .container {
+        padding-top: 110px;
+    }
+    .container img {
+            max-width: 100%;
+            height: auto;
+    }
+    .date-container{
+            font-family: 'Disket Mono', monospace;
+            margin-left: 40px;
+            font-size: 15px; 
+            color: rgb(128, 132, 130); 
+        }
+    body {
+          padding-top: 70px; 
+        }
     </style>
 
 <title>{% block title %}{% endblock %}</title>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <a class="navbar-brand" href="/api/v1/gmail/messages/brief_of_today">
-        <div>Deft.B</div>
-    </a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
-            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-    </button>
-
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-        <ul class="navbar-nav mr-auto">
-            <li class="nav-item active">
-                <a class="nav-link" href="/api/v1/gmail/user/">Inbox</a>
-            </li>
-            <li class="nav-item active">
-                <a class="nav-link" href="/api/v1/gmail/messages/send">Send</a>
-            </li>
-            <li class="nav-item dropdown active">
-                <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-toggle="dropdown"
-                    aria-haspopup="true" aria-expanded="false">
-                       More
-                </a>
-                <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                    <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/unread">Unread</a>
-                        <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/spam">Spam</a>
-                        <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/trash">Trash</a>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="/api/v1/gmail/messages/brief_of_today">
+            <div>Deft.B</div>
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+                aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item active">
+                    <a class="nav-link" href="/api/v1/gmail/user/">Inbox</a>
+                </li>
+                <li class="nav-item active">
+                    <a class="nav-link" href="/api/v1/gmail/messages/send">Send</a>
+                </li>
+                <li class="nav-item dropdown active">
+                    <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-toggle="dropdown"
+                        aria-haspopup="true" aria-expanded="false">
+                           More
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/UNREAD">Unread</a>
+                        <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/SPAM">Spam</a>
+                        <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/TRASH">Trash</a>
                         <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/CATEGORY_PERSONAL">Personal</a>
                         <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/CATEGORY_SOCIAL">Social</a>
-                </div>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="/logout">Logout</a>
-            </li>
-        </ul>
-        <form class="form-inline my-2 my-lg-0">
-            <input class="form-control mr-sm-2" type="search" aria-label="Search">
-            <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
-        </form>
-    </div>
-</nav>
+                        <a class="dropdown-item" >Search By Date</a>
+
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/logout">Logout</a>
+                </li>
+            </ul>
+            <div class="date-container">
+                <form action="/get_messages_by_date" method="post" class="form-inline">
+                    <label for="start-date" class="mr-2">Start<strong>:</strong></label>
+                    <input type="date" id="start-date" name="start-date" class="form-control mr-3">
+            
+                    <label for="end-date" class="mr-2">End<strong>:</strong></label>
+                    <input type="date" id="end-date" name="end-date" class="form-control mr-3">
+            
+                    <input type="submit" value="Search Messages" class="btn btn-outline-success">
+                </form>
+            </div>    
+        </div>
+    </nav>
 <p>{% block content %}{% endblock %}</p>
 <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>

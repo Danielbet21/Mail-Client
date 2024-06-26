@@ -28,9 +28,8 @@ def get_labels(labels, indicator:int)-> list[str]:
 
 def get_message_by_id(desired_message_id: str)-> message.Message:
     
-    messages = gmail.get_messages()
-        
-    for message in messages:
+    messages = gmail.get_messages(query="")
+    for message in messages: 
         if message.id == desired_message_id:
             return message
 

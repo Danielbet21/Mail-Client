@@ -4,16 +4,14 @@ from datetime import date
 import os
 import webbrowser
 from threading import Timer
-
 import pymongo
-
 import data_base
 import shared_resources
-
+from constent import Constent
 from flask import (Flask, flash, jsonify, redirect, render_template, request, session, url_for)
-
 from simplegmail import Gmail
 from simplegmail.query import construct_query
+from oauth2client.client import AccessTokenCredentials
 
 
 app = Flask(__name__)
@@ -33,23 +31,25 @@ def home():
 @app.route("/api/v1/gmail/login", methods=["POST", "GET"])
 def login():
     if request.method == 'POST':
-
-
-        full_email = request.form['email']
-    
-        db_name = shared_resources.get_name_from_email(full_email)
-
-
-        session['email'] = db_name
-        data_base.update_db(session['email'])
-
-
-        if db_name not in shared_resources.client.list_database_names():
-            data_base.init_db(db_name)
-            data_base.make_db(db_name)  
-
-        #TODO: make an error handling for:
-        # oauth2client.client.HttpAccessTokenRefreshError: invalid_grant: Token has been expired or revoked.
+        db = shared_resources.client["Deft"]
+        user_email = request.form['email']
+        session['email'] = user_email
+        found = db["Users"].count_documents({"email": user_email})
+        if not found:
+            logging.info("making a new document for the user...")
+            data_base.make_db(user_email) 
+            data_base.init_db(user_email)
+        else:
+            data_base.update_db(user_email)
+        try:
+            #try to envoke the credentials
+            gmail.get_drafts()
+        except AccessTokenCredentials.error:
+            credentials = oauth2client.client.OAuth2Credentials.from_json(session['credentials'])
+            if credentials.access_token_expired:
+                credentials.refresh(httplib2.Http())
+                session['credentials'] = credentials.to_json()
+                
         return redirect(url_for("get_brief_of_today"))
 
     return render_template("login.html")
@@ -89,7 +89,9 @@ def get_messages_by_date(str_date: str, end_date: str):
     - end_date is not included in the search
     Currently, the emails includes all the the messages sent and resicved by & from the user
     """
-
+    if not str_date and not end_date:
+        str_date = request.form.get('start-date')
+        end_date = request.form.get('end-date')
     dates = {
         "after": str_date,
         
@@ -105,20 +107,21 @@ def get_messages_by_date(str_date: str, end_date: str):
 @app.route('/api/v1/gmail/messages/<sender_email>', methods=['GET'])
 def get_messages_by_source(sender_email: str):
     messages = gmail.get_messages(query=f"from: {sender_email}")
-    #TODO: make a db version
+    #TODO: a db version of get all the messages by sender
     return render_template("user.html", messages=messages, labels=gmail.list_labels(), get_name=shared_resources.get_email_sender_name, title="By Source")
 
 
 @app.route('/api/v1/gmail/messages/by_label/<string:wanted_label>', methods=["POST",'GET'])
 def get_messages_by_label(wanted_label):
-
     data = {    
         "label": wanted_label
     }
-    db = shared_resources.client[session['email']]
-    collection = db[wanted_label]
-    messages = collection.find()
-    
+    db = shared_resources.client["Deft"]
+    message_collection = db["Messages"]
+    user_document = db["Users"].find_one({"email": session['email']})
+    wanted_label_messages_ids = user_document.get(wanted_label, [])
+    wanted_label_messages_ids = list(set(wanted_label_messages_ids))
+    messages = list( db["Messages"].find({"id": {"$in": wanted_label_messages_ids}}))    
     #drops the initial "category_"
     if wanted_label[:9] == "CATEGORY_":
         wanted_label = wanted_label[9:].lower().capitalize()
@@ -129,29 +132,27 @@ def get_messages_by_label(wanted_label):
 @app.route('/api/v1/gmail/messages/show_message_info/<message_id>/<labels>', methods=['GET'])
 def show_message_info(message_id,labels):
     found = False
-    message1 = None
-        
-    db = shared_resources.client[session['email']]    
+    message_from_gmail = None
+    db = shared_resources.client["Deft"]
     label_names = shared_resources.get_labels(labels, 0)
-    
-    # search for the message in the db
-    for label in label_names:
-        collection = db[label]
-        message = collection.find_one({"id": message_id}) 
-        if message:
-            found = True
-            break
-        
-    # update the gmail webpage
-    message1 = shared_resources.get_message_by_id(message_id) #TODO: make it in async??
-    
+    message_collection = db["Messages"]
+    message = message_collection.find_one({"id": message_id}) 
+    if message:
+        found = True
+    message_from_gmail = shared_resources.get_message_by_id(message_id) #TODO: make it in async??
     if "UNREAD" in label_names:
-        message1.mark_as_read()
+        if message_from_gmail is not None: # message_from_gmail is None if the message is in the trash
+            message_from_gmail.mark_as_read()  
         #update db
         if found:    
-            target_collection = db["UNREAD"]
-            target_collection.delete_one({"id": message['id']}) 
-            
+            message_collection = db["Messages"]
+            message_collection.delete_one({"id": message['id']})
+            message = data_base.purify_message(message)
+            message_collection.insert_one(message)
+            db["Users"].update_one({"email": session['email']}, {"$pull": {"unread": message_id}})
+        elif message_from_gmail is not None:
+            return render_template("message_info.html",title="message info" , message=message_from_gmail)
+
     return render_template("message_info.html",title="message info" , message=message)
 
 
@@ -188,7 +189,6 @@ def send_message():
 
 @app.get('/api/v1/gmail/messages/send')
 def display_send_massage_page():
-
     return render_template("send_msg.html")
 
 
@@ -200,71 +200,59 @@ def move_to_garbage():
         message_id = session.get('message_id')
     
     msg = shared_resources.get_message_by_id(message_id)
-    
-    
+    if msg is None:
+        logging.info("msg is not found\n=====================\n") #TODO: make it fucking workkkkkk 
+        
     # update the db
     email = session['email']
-    db = shared_resources.client[shared_resources.get_name_from_email(email)]
+    db = shared_resources.client["Deft"]
 
     for label in msg.label_ids:
-
-        target_collection = db[label.name]
-
-        target_collection.delete_one({"id": msg.id})
+      db["Users"].update_one({"email": email}, {"$pull": {label.name: msg.id}})  
         
-    db["TRASH"].insert_one(data_base.purify_message(msg))
-    
+    db["Users"].update_one({"email": email}, {"$push": {"TRASH": message_id}}) 
+    db["Messages"].delete_one({"id": msg.id})
+    db["Messages"].insert_one(data_base.purify_message(msg))
     # every msg must be read in order to go into the trash
     msg.mark_as_read()
     msg.trash()
-    
     return redirect(url_for("get_brief_of_today"))
 
 
 @app.route('/api/v1/gmail/messages/add_label_to_message', methods=['POST'])
 def add_label_to_message():
-
-
         desired_message_id = request.form['message_id']
         desired_label = request.form['wanted_label'] #TODO: hebrew letters are invalid
-        
         msg = shared_resources.get_message_by_id(desired_message_id)
-
-
-        if desired_label == "TRASH":
-
-            msg.mark_as_not_important()
-
-            msg.mark_as_read()
-
-            session['message_id'] = desired_message_id
-
-            return redirect(url_for("move_to_garbage"))
-
-
-        msg.add_label(desired_label)
         
-
-        # update the db
         email = session['email']
-        db = shared_resources.client[shared_resources.get_name_from_email(email)]    
-
-        anti_inbox = gmail.list_labels()
-        anti_inbox.remove("INBOX")
+        db = shared_resources.client["Deft"]   
         
-        if desired_label in anti_inbox:
-            target_collection = db["INBOX"]
-            target_collection.delete_one({"id": the_msg.id}) 
-        
-        target_collection = db[desired_label]
-        target_collection.insert_one(data_base.purify_message(the_msg))
-        
+        if desired_label == "TRASH":
+            if msg:
+                msg.mark_as_not_important()
+                msg.mark_as_read()
+                
+            session['message_id'] = desired_message_id
+            return redirect(url_for("move_to_garbage"))
+        elif desired_label == "SPAM":
+            if msg:
+                msg.mark_as_spam()
+                msg.mark_as_not_important()
+                msg.mark_as_read()
+                
+            Constent.move_to_the_right_label(email,"SPAM",desired_message_id,db)
+        else:
+            if msg:
+                msg.mark_as_read()
+                msg.add_label(desired_label)
+                
+            Constent.move_to_the_right_label(email,desired_label,desired_message_id,db)
+    
         return redirect(url_for("get_brief_of_today"))
 
 
 if __name__ == "__main__":
-
     if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
             Timer(1, lambda: webbrowser.open('http://127.0.0.1:5000')).start()
-    
     app.run(debug=True)

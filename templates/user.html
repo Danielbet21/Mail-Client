@@ -8,9 +8,15 @@
             max-height: 200px; 
             overflow-y: auto; 
             border: 1px solid #ccc; 
-            border-radius: 5px; 
-            
+            border-radius: 5px;    
         }
+        
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000; 
+         }
     
         .navbar-brand {
         font-weight: bold; 
@@ -56,6 +62,15 @@
             max-width: 100%;
             height: auto;
         }
+        .date-container{
+            font-family: 'Disket Mono', monospace;
+            margin-left: 40px;
+            font-size: 15px; 
+            color: rgb(128, 132, 130); 
+        }
+        body {
+          padding-top: 70px; 
+        }
     </style>
     <title>{% block title %}Deft.B | {{title}}{% endblock %}</title>
 </head>
@@ -79,7 +94,6 @@
                 aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
-
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav mr-auto">
                 <li class="nav-item active">
@@ -90,39 +104,42 @@
                 </li>
                 <li class="nav-item dropdown active">
                     <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-toggle="dropdown"
-                        aria-haspopup="true" aria-expanded="false">
-                           More
-                    </a>
+                        aria-haspopup="true" aria-expanded="false">More</a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                        <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/unread">Unread</a>
-                        <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/spam">Spam</a>
-                        <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/trash">Trash</a>
+                        <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/UNREAD">Unread</a>
+                        <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/SPAM">Spam</a>
+                        <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/TRASH">Trash</a>
                         <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/CATEGORY_PERSONAL">Personal</a>
                         <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/CATEGORY_SOCIAL">Social</a>
-
                     </div>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/logout">Logout</a>
-                </li>
             </ul>
-            <form class="form-inline my-2 my-lg-0">
-                <input class="form-control mr-sm-2" type="search"  aria-label="Search">
-                <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
-            </form>
+            <div class="date-container">
+                <form action="/get_messages_by_date" method="post" class="form-inline">
+                    <label for="start-date" class="mr-2">Start<strong>:</strong></label>
+                    <input type="date" id="start-date" name="start-date" class="form-control mr-3">
+            
+                    <label for="end-date" class="mr-2">End<strong>:</strong></label>
+                    <input type="date" id="end-date" name="end-date" class="form-control mr-3">
+            
+                    <input type="submit" value="Search Messages" action="/api/v1/gmail/messages//<string:end_date>" class="btn btn-outline-success">
+                </form>
+            </div>    
         </div>
     </nav>
 
     <!-- Body content from user.html -->
     <p>{% block content %}
     {% if not messages %}
-    <p>No messages</p>
+    <div style="display: flex; justify-content: center; align-items: center; height: 80vh;">
+        <img src="https://d1jj76g3lut4fe.cloudfront.net/processed/with_watermark/186X3w6jVA23yGN00z.png?Expires=1716482798&Signature=Zll64hgOi~UpT0rRsVAfnzxdGJKzWRFijWMKl44OUU8TY21ptRy4uWLZ-1FRL~tRU4uDfxsec1fOGTVncwFIbx-9hTz5re4riZ6Nhd~NjoRPwfmtXi3FLuyWat6LXOdBEKmuUCh7H-fD03QdYnKnccnYg0Ne3kXEWzjyEb87wcjnCtJSKXWToeZPXAbtjub7WZA99AoVi721KWam7d~KUNN1ClyLTi~T4VA45mkSeH7bebxZ0-mBsSKbjOvDW804QcwgiithOy4KJcOpYtEghsY8NvUwnh3dwN5-XF~24Qu-LW1IfhDMxnD50sJ-6bELquody11TgdrgfFlmAKzxdg__&Key-Pair-Id=K2YEDJLVZ3XRI"
+         alt="No messages" width="900" height="900">
+    </div>
     {% else %}
     {% for msg in messages %}
         {% if "UNREAD" in msg.label_ids %}
             <p style="margin-left: 20px;"><strong><a href="{{ url_for('get_messages_by_source', sender_email= msg.sender) }}" style="color: black;">{{ get_name(msg.sender) }}</a></strong></p>
-            <p style="margin-left: 20px;"><strong><a href="{{ url_for('show_message_info', message_id=msg.id, labels=msg.label_ids) }}" style="color: black;">{{ msg.subject }}</a>
-            </strong></p>
+            <p style="margin-left: 20px;"><strong><a href="{{ url_for('show_message_info', message_id=msg.id, labels=msg.label_ids) }}" style="color: black;">{{ msg.subject }}</a></strong></p>
             <p style="margin-left: 20px;"><strong>{{ msg.snippet }}</strong></p>
             <p style="margin-left: 20px;"><strong>{{ msg.date[:-6] }}</strong></p>
         {% else %}
@@ -146,7 +163,7 @@
                     <!-- Loop through labels and create a dropdown item for each one -->
                     {% for label in labels %}
                     <form action="{{ url_for('add_label_to_message') }}" method="post">
-                        <input type="hidden" name="message_id" value="{{ msg._id }}">
+                        <input type="hidden" name="message_id" value="{{ msg.id }}">
                         <input type="hidden" name="wanted_label" value="{{ label.name }}">
                         <button type="submit" class="btn btn-outline-primary dropdown-item">
                             {{ label.name }}
