@@ -11,7 +11,7 @@ from constent import Constent
 from flask import (Flask, flash, jsonify, redirect, render_template, request, session, url_for)
 from simplegmail import Gmail
 from simplegmail.query import construct_query
-from oauth2client.client import AccessTokenCredentials
+from oauth2client.client import AccessTokenCredentials, HttpAccessTokenRefreshError
 
 
 app = Flask(__name__)
@@ -44,11 +44,13 @@ def login():
         try:
             #try to envoke the credentials
             gmail.get_drafts()
-        except AccessTokenCredentials.error:
-            credentials = oauth2client.client.OAuth2Credentials.from_json(session['credentials'])
-            if credentials.access_token_expired:
-                credentials.refresh(httplib2.Http())
-                session['credentials'] = credentials.to_json()
+        except HttpAccessTokenRefreshError as e:
+                if "Token has been expired or revoked" in str(e):
+                    logging.error("Token has been expired or revoked. Refreshing token...")
+                    credentials = OAuth2Credentials.from_json(session['credentials'])
+                    if credentials.access_token_expired:
+                        credentials.refresh(httplib2.Http())
+                        session['credentials'] = credentials.to_json()
                 
         return redirect(url_for("get_brief_of_today"))
 

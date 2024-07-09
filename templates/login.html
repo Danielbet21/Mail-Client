@@ -13,15 +13,13 @@
         padding: 10px; 
         margin-bottom: 10px; 
     }
-</style>
-<style>
     .center-label {
         display: block;
         text-align: center;
         margin-left: auto;
         margin-right: auto;
         font-size: 30px;
-        Font-family: 'Disket Mono', monospace;
+        Font-family: 'Abadi', monospace;
     }
     .center-button {
         display: block;
@@ -41,11 +39,10 @@
         margin-left: auto;
         margin-right: auto;
         font-size: 15px;
-        Font-family: 'Disket Mono', monospace;
+        Font-family: 'Abadi', monospace;
     }
     .form-control {
         font-size: 20px; 
-        font-family: 'Disket Mono', monospace;
         width: 150%; 
         max-width: 500px; 
         margin-right: 250px; 
@@ -57,7 +54,7 @@
         margin-left: auto;
         margin-right: auto;
         font-size: 30px;
-        Font-family: 'Disket Mono', monospace;
+        Font-family: 'Abadi', monospace;
     }
     .center-container {
             display: flex;
@@ -67,19 +64,38 @@
             min-height: calc(100vh - 60px); /* Adjust as needed */
     }
     body {
-        background-color: #8fdcc1;
+        background-color: #1bb680;
+    }
+    .submit-button {
+        margin-top: 10px;
+    }
+    .comment-email {
+        color: rgb(248, 248, 248);
+        Font-family: 'Abadi', monospace;
+    }
+    .rights-message {
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
     }
 </style>
 <div>
 </div>
 <div class="center-container">
-    <h1 class="welcome-label">Welcome to Mail Assistant DB</h1>
+    <h1 class="welcome-label">Welcome To Mail Assistant <br> Deft.B</h1>
     <form method="POST" class="center-form">
+        <label for="exampleInputEmail1" class="form-label center-label">Enter Your Email Address</label>
         <div class="mb-3">
-        <label for="exampleInputEmail1" class="form-label center-label">Enter your email address</label>
-        <input type="email" class="form-control" id="exampleInputEmail1" name="email" aria-describedby="emailHelp" placeholder="Email address">
-        <div id="emailHelp" class="form-text commet-center-label">We'll never share your email with anyone else.</div>
+        <input type="email" class="form-control" id="exampleInputEmail1" name="email" aria-describedby="emailHelp" placeholder="Your email is...">
         </div>
-        <button type="submit" class="btn btn-primary center-button">Submit</button>
+
+        <div id="emailHelp" class="comment-email"> We'll never share your email with anyone else.</div>
+        <div class="submit-button"> <button type="submit" class="btn btn-primary center-button">Submit</button>
+        </div>
     </form>
 </div>
+<footer>
+    <div class="rights-message">
+    <p>&copy; 2024 Mail Assistant Deft.B. All rights reserved.</p>
+</div>
+</footer>
