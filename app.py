@@ -11,6 +11,7 @@ from constent import Constent
 from flask import (Flask, flash, jsonify, redirect, render_template, request, session, url_for)
 from simplegmail import Gmail
 from simplegmail.query import construct_query
+from googleapiclient.discovery import build
 from oauth2client.client import AccessTokenCredentials, HttpAccessTokenRefreshError
 
 
@@ -120,7 +121,8 @@ def get_messages_by_label(wanted_label):
     }
     db = shared_resources.client["Deft"]
     message_collection = db["Messages"]
-    user_document = db["Users"].find_one({"email": session['email']})
+        
+    user_document = db["Users"].find_one({"email": session['email'].strip()})
     wanted_label_messages_ids = user_document.get(wanted_label, [])
     wanted_label_messages_ids = list(set(wanted_label_messages_ids))
     messages = list( db["Messages"].find({"id": {"$in": wanted_label_messages_ids}}))    
@@ -196,18 +198,23 @@ def display_send_massage_page():
 
 @app.route('/api/v1/gmail/messages/move_to_garbage', methods=['POST', 'GET'])
 def move_to_garbage():
-    message_id = request.form.get('message_id')
-
-    if message_id is None:
-        message_id = session.get('message_id')
-    
-    msg = shared_resources.get_message_by_id(message_id)
-    if msg is None:
-        logging.info("msg is not found\n=====================\n") #TODO: make it fucking workkkkkk 
-        
-    # update the db
     email = session['email']
     db = shared_resources.client["Deft"]
+    
+    message_id = request.form.get('message_id')
+    if message_id is None:
+        message_id = session.get('message_id')
+        
+    msg = shared_resources.get_message_by_id(message_id)
+    if msg is None: 
+        """
+        If msg is None it means that the user want to delete a message that is already in the trash
+        Hance we need to delete it from the db and the gmail account.
+        """
+        db["Users"].update_one({"email": session['email']}, {"$pull": {"TRASH": message_id}})
+        db["Messages"].delete_one({"id": message_id}) 
+
+        return redirect(url_for("get_messages_by_label", wanted_label="TRASH"))
 
     for label in msg.label_ids:
       db["Users"].update_one({"email": email}, {"$pull": {label.name: msg.id}})  
@@ -215,9 +222,8 @@ def move_to_garbage():
     db["Users"].update_one({"email": email}, {"$push": {"TRASH": message_id}}) 
     db["Messages"].delete_one({"id": msg.id})
     db["Messages"].insert_one(data_base.purify_message(msg))
-    # every msg must be read in order to go into the trash
-    msg.mark_as_read()
     msg.trash()
+
     return redirect(url_for("get_brief_of_today"))
 
 
@@ -246,7 +252,6 @@ def add_label_to_message():
             Constent.move_to_the_right_label(email,"SPAM",desired_message_id,db)
         else:
             if msg:
-                msg.mark_as_read()
                 msg.add_label(desired_label)
                 
             Constent.move_to_the_right_label(email,desired_label,desired_message_id,db)
