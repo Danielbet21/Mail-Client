@@ -3,6 +3,7 @@
 <head>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         .labels-menu {
             max-height: 200px; 
@@ -96,15 +97,20 @@
                     <a class="nav-link" href="/api/v1/gmail/user/">Inbox</a>
                 </li>
                 <li class="nav-item active">
-                    <a class="nav-link" href="/api/v1/gmail/messages/send">Send</a>
+                    <a class="nav-link" href="/api/v1/gmail/messages/send"><i class="fas fa-light fa-pencil"></i></a>
                 </li>
+                <li class="nav-item active">
+                    <a class="nav-link" href="/api/v1/gmail/messages/by_label/TRASH"><i class="fas fa-trash-alt"></i></a>
+                </li>
+                <li class="nav-item active">
+                    <a class="nav-link" href="/api/v1/gmail/messages/by_label/UNREAD">Unread</a>
+                </li>
+
                 <li class="nav-item dropdown active">
                     <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-toggle="dropdown"
                         aria-haspopup="true" aria-expanded="false">More</a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                        <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/UNREAD">Unread</a>
                         <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/SPAM">Spam</a>
-                        <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/TRASH">Trash</a>
                         <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/CATEGORY_PERSONAL">Personal</a>
                         <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/CATEGORY_SOCIAL">Social</a>
                     </div>

@@ -42,20 +42,29 @@ def login():
             data_base.init_db(user_email)
         else:
             data_base.update_db(user_email)
+
         try:
-            #try to envoke the credentials
+            # Try to invoke the credentials and make a request
             gmail.get_drafts()
         except HttpAccessTokenRefreshError as e:
-                if "Token has been expired or revoked" in str(e):
-                    logging.error("Token has been expired or revoked. Refreshing token...")
-                    credentials = OAuth2Credentials.from_json(session['credentials'])
-                    if credentials.access_token_expired:
-                        credentials.refresh(httplib2.Http())
-                        session['credentials'] = credentials.to_json()
-                
+            if "Token has been expired or revoked" in str(e):
+                logging.error("Token has been expired or revoked. Refreshing token...")
+                credentials = OAuth2Credentials.from_json(session['credentials'])
+                if credentials.access_token_expired:
+                    credentials.refresh(httplib2.Http())
+                    session['credentials'] = credentials.to_json()
+
+                try:
+                    # Retry the request after refreshing the token
+                    gmail.get_drafts()
+                except Exception as e:
+                    logging.error(f"Failed after refreshing the token: {e}")
+                    return render_template("error.html")
+
         return redirect(url_for("get_brief_of_today"))
 
     return render_template("login.html")
+
 
 
 @app.route("/api/v1/gmail/user/", methods=["POST", "GET"])
@@ -137,13 +146,16 @@ def get_messages_by_label(wanted_label):
 def show_message_info(message_id,labels):
     found = False
     message_from_gmail = None
+    
     db = shared_resources.client["Deft"]
     label_names = shared_resources.get_labels(labels, 0)
     message_collection = db["Messages"]
-    message = message_collection.find_one({"id": message_id}) 
+    message = message_collection.find_one({"id": message_id})
+     
     if message:
         found = True
     message_from_gmail = shared_resources.get_message_by_id(message_id) #TODO: make it in async??
+    
     if "UNREAD" in label_names:
         if message_from_gmail is not None: # message_from_gmail is None if the message is in the trash
             message_from_gmail.mark_as_read()  
@@ -154,6 +166,7 @@ def show_message_info(message_id,labels):
             message = data_base.purify_message(message)
             message_collection.insert_one(message)
             db["Users"].update_one({"email": session['email']}, {"$pull": {"unread": message_id}})
+            
         elif message_from_gmail is not None:
             return render_template("message_info.html",title="message info" , message=message_from_gmail)
 
