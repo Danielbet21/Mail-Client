@@ -28,9 +28,9 @@
     <div class="container">
         <div class="row">
             <div class="col-md-12">
-                <p><strong>subject:</strong> {{ message.subject }}</p>
-                <p><strong>sender:</strong> {{ message.sender }}</p>
-                <p><strong>date:</strong> {{ message.date[:-6] }}</p>
+                <p><strong>Subject: </strong> {{ message.subject }}</p>
+                <p><strong>Sender: </strong> {{ message.sender }}</p>
+                <p><strong>Date: </strong> {{ message.date[:-6] }}</p>
                 <div class="message-content">
                     <div>{{ message.html|safe }}</div>
                 </div>

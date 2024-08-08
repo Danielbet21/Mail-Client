@@ -5,20 +5,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        .labels-menu {
-            max-height: 200px; 
-            overflow-y: auto; 
-            border: 1px solid #ccc; 
-            border-radius: 5px;    
-        }
-        
         .navbar {
             position: fixed;
             top: 0;
             width: 100%;
             z-index: 1000; 
          }
-    
          .navbar-logo {
             display: flex;
             align-items: center;
@@ -27,27 +19,28 @@
             height: 5%;
             margin-right: 15px;
         }
-        
         .nav-item {
             font-weight: bold; 
             margin-right: 10px; 
             Font-family: 'Disket Mono', monospace;
         }
-   
+        .dropdown-menu {
+            font-size: 1rem; 
+            text-align: left; 
+            overflow: visible;
+            z-index: 1050;
+        }
         .dropdown-menu .dropdown-item {
             font-size: 1rem; 
             text-align: left; 
-            Font-family: 'Disket Mono', monospace;
         }
-   
         .flash-message {
             font-size: 20px; 
-            color: rgb(6, 178, 112); 
+            color: rgb(210, 74, 37); 
             background-color: whitesmoke; 
             padding: 10px; 
             margin-bottom: 10px; 
         }
-    
         .btn-outline-success {
             font-family: 'Disket Mono', monospace;
         }
@@ -64,23 +57,62 @@
             font-size: 15px; 
             color: rgb(128, 132, 130); 
         }
+        .message-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-left: 20px;
+            padding: 10px 0;
+            padding: 20px;
+
+            border-radius: 25px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: #ffffff;
+            flex-direction: row;
+            gap: 1px;
+            margin: 20px 0;
+        }
+        .message-row:hover {
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            }
+        .message-sender-subject {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .message-snippet {
+            display: flex;
+            flex: 1;
+            text-align: center;
+            align-items: center;
+            justify-content: center;
+        }
+        .message-date {
+            flex: 1;
+            text-align: right;
+            margin-right: 20px;
+        }
+        .no_mail {
+            font-family: 'Uncial Antiqua', monospace;
+            font-size: 22px;
+            color: rgb(101, 103, 102);
+            text-align: center;
+            margin-top: 50px;
+        }
+        .no_mail_img {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 60vh;
+        }
         body {
           padding-top: 110px; 
+          background-color: #f0f4f8;
         }
     </style>
     <title>{% block title %}Deft.B | {{title}}{% endblock %}</title>
 </head>
-<body>
-    <!-- Display flash messages -->
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <div class="flash-message">
-                {% for message in messages %}
-                    {{ message }}
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endwith %}
+<body> 
     <!-- Navigation bar code -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <a class="navbar-logo" href="/api/v1/gmail/messages/brief_of_today">
@@ -117,14 +149,14 @@
                 </li>
             </ul>
             <div class="date-container">
-                <form action="/get_messages_by_date" method="post" class="form-inline">
+                <form id="date-form" class="form-inline" onsubmit="return submitForm()">
                     <label for="start-date" class="mr-2">Start<strong>:</strong></label>
                     <input type="date" id="start-date" name="start-date" class="form-control mr-3">
-            
+                    
                     <label for="end-date" class="mr-2">End<strong>:</strong></label>
-                    <input type="date" id="end-date" name="end-date" class="form-control mr-3">
-            
-                    <input type="submit" value="Search Messages" action="/api/v1/gmail/messages//<string:end_date>" class="btn btn-outline-success">
+                    <input type="date" id="end-date" name="end-date" class="form-control mr-3" required>
+                    
+                    <button type="submit" class="btn btn-outline-success">Search Messages</button>
                 </form>
             </div>    
         </div>
@@ -133,29 +165,31 @@
     <!-- Body content from user.html -->
     <p>{% block content %}
     {% if not messages %}
-    <div style="display: flex; justify-content: center; align-items: center; height: 80vh;">
-        <img src="https://d1jj76g3lut4fe.cloudfront.net/processed/with_watermark/186X3w6jVA23yGN00z.png?Expires=1716482798&Signature=Zll64hgOi~UpT0rRsVAfnzxdGJKzWRFijWMKl44OUU8TY21ptRy4uWLZ-1FRL~tRU4uDfxsec1fOGTVncwFIbx-9hTz5re4riZ6Nhd~NjoRPwfmtXi3FLuyWat6LXOdBEKmuUCh7H-fD03QdYnKnccnYg0Ne3kXEWzjyEb87wcjnCtJSKXWToeZPXAbtjub7WZA99AoVi721KWam7d~KUNN1ClyLTi~T4VA45mkSeH7bebxZ0-mBsSKbjOvDW804QcwgiithOy4KJcOpYtEghsY8NvUwnh3dwN5-XF~24Qu-LW1IfhDMxnD50sJ-6bELquody11TgdrgfFlmAKzxdg__&Key-Pair-Id=K2YEDJLVZ3XRI"
-         alt="No messages" width="900" height="900">
+    <div class="no_mail">
+        <p>The World Is Not In Your Empty Mailbox. <br> It's Out There.</p>
+    </div>
+    <div class="no_mail_img style="display: flex; justify-content: center; align-items: center; height: 80vh;">
+        <img src="\static\images\empty_gandalf.png"
+         alt="No messages">
     </div>
     {% else %}
     {% for msg in messages %}
         {% if "UNREAD" in msg.label_ids %}
-            <p style="margin-left: 20px;"><strong><a href="{{ url_for('get_messages_by_source', sender_email= msg.sender) }}" style="color: black;">{{ get_name(msg.sender) }}</a></strong></p>
-            <p style="margin-left: 20px;"><strong><a href="{{ url_for('show_message_info', message_id=msg.id, labels=msg.label_ids) }}" style="color: black;">{{ msg.subject }}</a></strong></p>
-            <p style="margin-left: 20px;"><strong>{{ msg.snippet }}</strong></p>
-            <p style="margin-left: 20px;"><strong>{{ msg.date[:-6] }}</strong></p>
-        {% else %}
-            <p style="margin-left: 20px;"><a href="{{ url_for('get_messages_by_source', sender_email = msg.sender) }}" style="color: black;">{{ get_name(msg.sender) }}</a></p>
-            <p style="margin-left: 20px;"><a href="/api/v1/gmail/messages/show_message_info/{{ msg.id }}/{{ msg.label_ids }}" style="color: black;">{{ msg.subject }}</a></p>
-            <p style="margin-left: 20px;">{{ msg.snippet }}</p>
-            <p style="margin-left: 20px;">{{ msg.date[:-6] }}</p>
-        {% endif %}
-        <!--"Delete" button -->
-        <div class="btn-group" style="margin-left: 20px;">
-            <form method="POST" action="/api/v1/gmail/messages/move_to_garbage">
-                <input type="hidden" name="message_id" value="{{ msg.id }}">
-                <button type="submit" class="btn btn-outline-danger">Delete</button>
-            </form>
+        <div class="message-row">
+            <div class="message-sender-subject">
+                <p><strong><a href="{{ url_for('get_messages_by_source', sender_email = msg.sender) }}" style="color: black;">{{ get_name(msg.sender) }}</a></strong></p>
+                <p><strong><a href="{{ url_for('show_message_info', message_id=msg.id, labels=msg.label_ids) }}" style="color: black;">{{ msg.subject }}</a></strong></p>
+            </div>
+            <div class="message-snippet">
+                {% if msg.snippet|length <= 30 %}
+                    <p><strong>{{ msg.snippet }}</strong></p>
+                {% else %}
+                    <p><strong>{{ msg.snippet[:30] }}...</strong></p>
+                {% endif %}
+            </div>
+            <div class="message-date">
+                <p><strong>{{ msg.date[:-6] }}</strong></p>
+            </div>
             <!-- Dropdown menu -->
             <div class="btn-group" style="margin-left: 20px;">
                 <button type="button" class="btn btn-outline-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -167,24 +201,88 @@
                     <form action="{{ url_for('add_label_to_message') }}" method="post">
                         <input type="hidden" name="message_id" value="{{ msg.id }}">
                         <input type="hidden" name="wanted_label" value="{{ label.name }}">
-                        <button type="submit" class="btn btn-outline-primary dropdown-item">
-                            {{ label.name }}
-                        </button>
+                        <button type="submit" class="btn btn-outline-primary dropdown-item">{{ label.name }}</button>
                     </form>
-                {% endfor %}
+                    {% endfor %}
                 </div>
             </div>
-        </div>
+            <!--"Delete" button -->
+            <div class="btn-group" style="margin-left: 20px;">
+                <form method="POST" action="/api/v1/gmail/messages/move_to_garbage">
+                    <input type="hidden" name="message_id" value="{{ msg.id }}">
+                    <button type="submit" class="btn btn-outline-danger">Delete</button>
+                </form>
         <hr style="margin-left: 20px;">
+        </div>
+        </div>
+        {% else %}
+        <div class="message-row">
+            <div class="message-sender-subject">
+                <p><a href="{{ url_for('get_messages_by_source', sender_email= msg.sender) }}" style="color: black;">{{ get_name(msg.sender) }}</a></p>
+                <p><a href="{{ url_for('show_message_info', message_id=msg.id, labels=msg.label_ids) }}" style="color: black;">{{ msg.subject }}</a></p>
+            </div>
+            <div class="message-snippet">
+                {% if msg.snippet|length <= 30 %}
+                    <p>{{ msg.snippet }}</p>
+                {% else %}
+                    <p>{{ msg.snippet[:30] }}...</p>
+                {% endif %}
+            </div>
+            <div class="message-date">
+                <p>{{ msg.date[:-6] }}</p>
+            </div>
+            <!-- Dropdown menu -->
+            <div class="btn-group" style="margin-left: 20px;">
+                <button type="button" class="btn btn-outline-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    Labels
+                </button>
+                <div class="dropdown-menu">
+                    <!-- Loop through labels and create a dropdown item for each one -->
+                    {% for label in labels %}
+                    <form action="{{ url_for('add_label_to_message') }}" method="post">
+                        <input type="hidden" name="message_id" value="{{ msg.id }}">
+                        <input type="hidden" name="wanted_label" value="{{ label.name }}">
+                        <button type="submit" class="btn btn-outline-primary dropdown-item">{{ label.name }}</button>
+                    </form>
+                    {% endfor %}
+                </div>
+            </div>
+            <!--"Delete" button -->
+            <div class="btn-group" style="margin-left: 20px;">
+                <form method="POST" action="/api/v1/gmail/messages/move_to_garbage">
+                    <input type="hidden" name="message_id" value="{{ msg.id }}">
+                    <button type="submit" class="btn btn-outline-danger">Delete</button>
+                </form>
+        </div>
+        </div>
+        {% endif %}
     {% endfor %}
     {% endif %}
     {% endblock %}</p>
+    <!-- Script tags -->
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script></body>
-    <!-- Script tags -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js"
             integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
             crossorigin="anonymous"></script>
+    <script>
+        function submitForm() {
+            var startDate = document.getElementById('start-date').value;
+            var endDate = document.getElementById('end-date').value;
+    
+            if (startDate && endDate || endDate && !startDate) {
+                var url = `/api/v1/gmail/messages/${startDate}/${endDate}`;
+                
+                // Redirect to the constructed URL
+                window.location.href = url;
+                return false; // Prevent the form from submitting the default way
+            } else {
+                alert('Please select both start and end dates\nor at least the end date.');
+                return false;
+            }
+        }
+    </script>
+    </body>
 </html>

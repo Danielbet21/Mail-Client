@@ -30,7 +30,7 @@ def home():
 
 
 @app.route("/api/v1/gmail/login", methods=["POST", "GET"])
-def login():
+def login(): #TODO: make sure this solv the problem of the token
     if request.method == 'POST':
         db = shared_resources.client["Deft"]
         user_email = request.form['email']
@@ -44,27 +44,31 @@ def login():
             data_base.update_db(user_email)
 
         try:
-            # Try to invoke the credentials and make a request
-            gmail.get_drafts()
+            gmail.list_labels()
         except HttpAccessTokenRefreshError as e:
             if "Token has been expired or revoked" in str(e):
                 logging.error("Token has been expired or revoked. Refreshing token...")
-                credentials = OAuth2Credentials.from_json(session['credentials'])
-                if credentials.access_token_expired:
-                    credentials.refresh(httplib2.Http())
-                    session['credentials'] = credentials.to_json()
-
                 try:
+                    credentials = OAuth2Credentials.from_json(session['credentials'])
+                    if credentials.access_token_expired:
+                        credentials.refresh(httplib2.Http())
+                        session['credentials'] = credentials.to_json()
+                    
                     # Retry the request after refreshing the token
-                    gmail.get_drafts()
+                    gmail.list_labels()
+                except HttpAccessTokenRefreshError as refresh_error:
+                    logging.error(f"Failed to refresh token: {refresh_error}")
+                    return render_template("error.html", message="Failed to refresh token. Please re-authenticate.")
                 except Exception as e:
-                    logging.error(f"Failed after refreshing the token: {e}")
-                    return render_template("error.html")
+                    logging.error(f"An unexpected error occurred: {e}")
+                    return render_template("error.html", message="An unexpected error occurred. Please try again.")
+            else:
+                logging.error(f"An unexpected error occurred: {e}")
+                return render_template("error.html", message="An unexpected error occurred. Please try again.")
 
         return redirect(url_for("get_brief_of_today"))
 
     return render_template("login.html")
-
 
 
 @app.route("/api/v1/gmail/user/", methods=["POST", "GET"])
@@ -101,9 +105,9 @@ def get_messages_by_date(str_date: str, end_date: str):
     - end_date is not included in the search
     Currently, the emails includes all the the messages sent and resicved by & from the user
     """
-    if not str_date and not end_date:
-        str_date = request.form.get('start-date')
-        end_date = request.form.get('end-date')
+    # if not str_date and not end_date:
+    #     str_date = request.form.get('start-date')
+    #     end_date = request.form.get('end-date')
     dates = {
         "after": str_date,
         
@@ -111,7 +115,7 @@ def get_messages_by_date(str_date: str, end_date: str):
     }
 
     logging.info(f'fetching messages from date: {str_date} up until {end_date}')
-    messages = gmail.get_messages(query=construct_query(**dates))
+    messages = gmail.get_messages(query=construct_query(**dates)) #TODO: make a db version of get all the messages by date
 
     return render_template("user.html", messages=messages, title="Message By Date", labels=gmail.list_labels(), get_name=shared_resources.get_email_sender_name)
 

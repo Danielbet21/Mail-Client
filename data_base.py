@@ -77,7 +77,6 @@ def update_db(email) -> None:
                     message_collection.delete_one({"id": msg.id})
                 message_collection.insert_one(purify_message(msg))
                 if any(label.name in categories for label in msg.label_ids):
-                    logging.info(f"\nthe name: {label.name}---- category: {label.name}\n ==================\n")
                     category_handler(msg, label.name, email)
 
 
