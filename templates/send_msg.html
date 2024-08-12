@@ -1,39 +1,145 @@
 {% extends "base.html" %}
 {% block title %}Deft.B | Send {% endblock %}
 {% block content %}
-
 <style>
     .form-floating{
         width: 300px;
     }
-    .text_chat {
+    .container{
         display: flex;
-        width: 90%;
-        justify-content: space-between;
+        height: 500px;
     }
-    .form-floating.textarea-container {
+    .text-editor {
+        flex-grow: 1;
         display: flex;
-        width: 90%;
-        justify-content: space-between;
-    }
-    .form-floating.textarea-container-chat {
-        display: flex;
-        width: 90%;
-        justify-content: space-between;
-        border: 5px;
-        
-    }
-    .oval-textarea {
-        border-radius: 25px; 
-        padding: 15px;
+        flex-direction: column;
         width: 100%;   
         height: 500px; 
-        resize: vertical; 
-        border: 5px solid;
+        border : 1px solid #dedbdb;
+
     }
-    .oval-textarea-colored {
-        border: 5px solid;
+    #message { 
+        flex-grow: 1;
+        width: 100%;    
+        height: 85%;
+        border: 1px solid #f5f2f2;
+        border-radius: 5px;
+        resize: none;
+        background-color: #ffffff;
+        padding: 10px; /* Added padding for better visibility */
+        color: #000; /* Ensured the text color is black */
+        overflow-y: auto;
+
+    }
+    #message[placeholder]:empty:before {
+        content: attr(placeholder);
+        color: #aaa;
+        font-style: italic;
+    }
+    
+    .toolbar {
+        display: flex;
+        gap: 10px;
+        background-color: #ffffff;
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .toolbar button {
+        border: none;
+        background-color: transparent;
+        font-size: 18px;
+        cursor: pointer;
+        padding: 5px;
+        transition: background-color 0.3s;
+    }
+
+    .toolbar button:hover {
+        background-color: #ddd;
+        border-radius: 2px;
+    }
+    .toolbar button.active {
+        background-color: #90ee90;
+    }
+    .chat-window {
+        background-color: #ffffff;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        width: 100%;
+        height: 100%;
+        border : 2px solid;
+        border-radius: 5px;
         border-image: linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet) 1;
+        padding: 10px; 
+        box-sizing: border-box; 
+    }
+    #chat-input { /* contain's the input for the chat and "send" button */
+        flex-direction: row;
+        display: flex;
+        width: 100%;
+    }
+    #user-input {
+        height: 130px;
+        margin-right: 10px;
+        width: 100%;
+        resize: none;
+        border-radius: 25px;
+        padding: 10px;
+        box-sizing: border-box;
+    }
+    .chat-output {
+        flex: 1;
+        padding: 10px;
+        overflow-y: auto;
+        border-bottom: 1px solid #ccc;
+    }
+    .chat-message {
+        margin: 5px 0;
+        padding: 10px;
+        border-radius: 10px;
+    }
+    .chat-message.user {
+        align-self: flex-end;
+    }
+    .chat-message.response {
+        background-color: #dad7d7;
+        align-self: flex-start;
+    }
+    .chat-input {
+        display: flex;
+        padding: 10px;
+        border-top: 1px solid #ccc;
+    }
+    .chat-input textarea {
+        flex: 1;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid #ccc;
+        resize: none;
+    }
+    .chat-input button {
+        margin-left: 10px;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 10px;
+        background-color: #007bff;
+        color: #fff;
+        cursor: pointer;
+    }
+    .icon-button {
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+    }
+
+    .icon-button svg {
+        transition: transform 0.3s;
+    }
+
+    .icon-button:hover svg {
+        transform: scale(1.1);
     }
     .form-container {
         flex-direction: column;
@@ -55,28 +161,54 @@
 </style>
 
 <div class="form-container">
-    <form action="/api/v1/gmail/messages/send" method="post">
+    <form action="/api/v1/gmail/messages/send" method="post" id="sendMessageForm">
         
         <div class="form-floating mb-3">
             <p class ="head-email">Sent To: </p>
-            <input type="email" class="form-control" width="300px" id="floatingInputInvalid" name="to" placeholder="name@example.com">
+            <input type="email" class="form-control" width="300px" id="floatingInputInvalid" name="to" placeholder="name@gmail.com">
         </div>
         <div class="form-floating mb-3">
             <p class ="head-subject">Subject: </p>
             <input type="text" class="form-control" id="floatingSubject" name="subject">
         </div>
         <!--the text and chat area-->
-        <div class="text_chat">
-            <div class="form-floating mb-3 textarea-container">
-                <textarea class="form-control oval-textarea" height=500px id="floatingMessage" name="message" placeholder="Message"></textarea>
+        <div class="container">
+            
+            <div class="text-editor">
+                <div class="toolbar">
+                    <button id="bold-btn" class="toolbar-button"><strong>B</strong></button>
+                    <button id="underline-btn" class="toolbar-button"><u>U</u></button>
+                    <button id="italic-btn" class="toolbar-button"><em>I</em></button>
+                    <button id="toggle-direction-btn" class="toolbar-button">
+                        <svg id="ltr-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-justify-left" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M2 12.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5m0-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5m0-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5m0-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5"/>
+                        </svg>
+                        <svg id="rtl-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-justify-right" viewBox="0 0 16 16" style="display: none;">
+                            <path fill-rule="evenodd" d="M6 12.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5m-4-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5m0-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5m0-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5"/>
+                        </svg>
+                    </button>
+                </div>
+                <div id="message" contenteditable="true" placeholder="Type your message"></div>
+                <input type="hidden" id="hiddenMessageInput" name="message">
             </div>
-            <div class="form-floating mb-3 textarea-container-chat">
-                <textarea class="form-control oval-textarea oval-textarea-colored" id="userMessage" name="userMessage" placeholder="This is where the chat will be"></textarea>
+
+            <div class="chat-window">
+                <svg id="stars-svg" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 16 16">
+                    <path d="M7.657 6.247c.11-.33.576-.33.686 0l.645 1.937a2.89 2.89 0 0 0 1.829 1.828l1.936.645c.33.11.33.576 0 .686l-1.937.645a2.89 2.89 0 0 0-1.828 1.829l-.645 1.936a.361.361 0 0 1-.686 0l-.645-1.937a2.89 2.89 0 0 0-1.828-1.828l-1.937-.645a.361.361 0 0 1 0-.686l1.937-.645a2.89 2.89 0 0 0 1.828-1.828zM3.794 1.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387A1.73 1.73 0 0 0 4.593 5.69l-.387 1.162a.217.217 0 0 1-.412 0L3.407 5.69A1.73 1.73 0 0 0 2.31 4.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387A1.73 1.73 0 0 0 3.407 2.31zM10.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.16 1.16 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.16 1.16 0 0 0-.732-.732L9.1 2.137a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732z"/>
+                </svg>
+                <div class="chat-output" id="chat-output"></div>
+                <div class="chat-input">
+                    <textarea id="user-input" placeholder="Type your message..."></textarea>
+                    <button id="send-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" class="bi bi-arrow-up-circle-fill" viewBox="0 0 16 16">
+                          <path d="M16 8A8 8 0 1 0 0 8a8 8 0 0 0 16 0m-7.5 3.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707z"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
         <input type="submit" value="Send Message" class="btn btn-primary center-button">
     </form>
-
 </div>
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <!-- jQuery usage for dynamic validation for the email field -->
@@ -91,4 +223,117 @@ $(document).ready(function() {
     });
 });
 </script>
+
+<script>
+    function updateHiddenInput() {
+        var messageContent = document.getElementById('message').innerHTML;
+        document.getElementById('hiddenMessageInput').value = messageContent;
+    }
+
+    document.getElementById('bold-btn').addEventListener('click', function(event) {
+        event.preventDefault(); // Prevent the default form submission
+        document.execCommand('bold');
+        updateHiddenInput();
+        this.classList.toggle('active');
+    });
+
+    document.getElementById('underline-btn').addEventListener('click', function(event) {
+        event.preventDefault(); // Prevent the default form submission
+        document.execCommand('underline');
+        updateHiddenInput();
+        this.classList.toggle('active');
+    });
+
+    document.getElementById('italic-btn').addEventListener('click', function(event) {
+        event.preventDefault(); // Prevent the default form submission
+        document.execCommand('italic');
+        updateHiddenInput();
+        this.classList.toggle('active');
+    });
+
+    document.getElementById('toggle-direction-btn').addEventListener('click', function(event) {
+    event.preventDefault(); // Prevent the default form submission
+    var message = document.getElementById('message');
+    var ltrIcon = document.getElementById('ltr-icon');
+    var rtlIcon = document.getElementById('rtl-icon');
+    
+    if (message.style.direction === 'rtl') {
+        message.style.direction = 'ltr';
+        message.style.textAlign = 'left';
+        ltrIcon.style.display = 'inline';
+        rtlIcon.style.display = 'none';
+    } else {
+        message.style.direction = 'rtl';
+        message.style.textAlign = 'right';
+        ltrIcon.style.display = 'none';
+        rtlIcon.style.display = 'inline';
+    }
+    updateHiddenInput();
+    this.classList.toggle('active');
+});
+    document.getElementById('sendMessageForm').addEventListener('submit', function(event) {
+        updateHiddenInput(); // Ensure hidden input is updated
+    });
+    
+</script>
+
+
+<script>
+    document.getElementById('message').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = (this.scrollHeight) + 'px';
+});
+</script>
+<script>
+    document.getElementById('send-button').addEventListener('click', function(event) {
+        event.preventDefault();
+        const userInput = document.getElementById('user-input');
+        const chatOutput = document.getElementById('chat-output');
+        const message = userInput.value.trim();
+
+        if (message) {
+            // Append user message
+            const userMessageDiv = document.createElement('div');
+            userMessageDiv.className = 'chat-message user';
+            userMessageDiv.textContent = message;
+            chatOutput.appendChild(userMessageDiv);
+
+            // Clear the input
+            userInput.value = '';
+
+            // Send the message to the backend
+            fetch('/api/v1/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Append the response message from the API
+                const responseMessageDiv = document.createElement('div');
+                responseMessageDiv.className = 'chat-message response';
+                responseMessageDiv.textContent = data.response;
+                chatOutput.appendChild(responseMessageDiv);
+
+                // Scroll to bottom
+                chatOutput.scrollTop = chatOutput.scrollHeight;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+
+                // Display an error message
+                const errorMessageDiv = document.createElement('div');
+                errorMessageDiv.className = 'chat-message error';
+                errorMessageDiv.textContent = 'An error occurred. Please try again.';
+                chatOutput.appendChild(errorMessageDiv);
+
+                // Scroll to bottom
+                chatOutput.scrollTop = chatOutput.scrollHeight;
+            });
+        }
+    });
+</script>
+
 {% endblock %}

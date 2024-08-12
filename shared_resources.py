@@ -1,6 +1,8 @@
 from email.utils import parseaddr
 from simplegmail import Gmail , message
 from simplegmail.query import construct_query
+from dotenv import load_dotenv
+import os
 
 
 import pymongo
@@ -8,6 +10,11 @@ client = pymongo.MongoClient("mongodb://localhost:27017/")
 
 gmail = Gmail()
 
+# Load environment variables from the .env file
+load_dotenv()
+
+# Set the OpenAI API key
+openai_api_key = os.getenv('OPENAI_API_KEY')
 
 def get_name_from_email(email) -> str:
 

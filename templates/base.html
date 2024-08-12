@@ -5,67 +5,63 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-<style>
-        .labels-menu {
-            max-height: 200px; 
-            overflow-y: auto; 
-            border: 1px solid #ccc; 
-            border-radius: 5px; 
-        }
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.5.0/font/bootstrap-icons.min.css">
+    <style>
         .navbar {
             position: fixed;
             top: 0;
             width: 100%;
             z-index: 1000; 
          }
-    
          .navbar-logo {
             display: flex;
             align-items: center;
             justify-content: center;
             width: 10%;
             height: 5%;
-            margin-left: 10px;
+            margin-right: 15px;
         }
-
-    .nav-item {
-        font-weight: bold; 
-        margin-right: 10px; 
-        font-family: 'Disket Mono', monospace;
-    }
-
-    .dropdown-menu .dropdown-item {
-        font-size: 1rem; 
-        text-align: left;
-        font-family: 'Disket Mono', monospace;
-    }
-    
-    .flash-message {
-        font-size: 20px; 
-        color: rgb(6, 178, 112); 
-        background-color: whitesmoke; 
-        padding: 10px; 
-        margin-bottom: 10px; 
-    }
-    .btn-outline-success {
-        font-family: 'Disket Mono', monospace;
-    }
-    .container {
-        padding-top: 110px;
-    }
-    .container img {
+        .nav-item {
+            font-weight: bold; 
+            margin-right: 10px; 
+            Font-family: 'Disket Mono', monospace;
+        }
+        .dropdown-menu {
+            font-size: 1rem; 
+            text-align: left; 
+            overflow: visible;
+            z-index: 1050;
+        }
+        .dropdown-menu .dropdown-item {
+            font-size: 1rem; 
+            text-align: left; 
+        }
+        .flash-message {
+            font-size: 20px; 
+            color: rgb(210, 74, 37); 
+            background-color: whitesmoke; 
+            padding: 10px; 
+            margin-bottom: 10px; 
+        }
+        .btn-outline-success {
+            font-family: 'Disket Mono', monospace;
+        }
+        .container {
+            overflow: hidden;
+        }
+        .container img {
             max-width: 100%;
             height: auto;
-    }
-    .date-container{
+        }
+        .date-container{
             font-family: 'Disket Mono', monospace;
             margin-left: 40px;
             font-size: 15px; 
             color: rgb(128, 132, 130); 
         }
     body {
-          padding-top: 70px; 
+        padding-top: 110px; 
+        background-color: #f0f4f8;
         }
     </style>
 
@@ -107,26 +103,43 @@
                 </li>
             </ul>
             <div class="date-container">
-                <form action="/get_messages_by_date" method="post" class="form-inline">
+                <form id="date-form" class="form-inline" onsubmit="return submitForm()">
                     <label for="start-date" class="mr-2">Start<strong>:</strong></label>
                     <input type="date" id="start-date" name="start-date" class="form-control mr-3">
-            
+                    
                     <label for="end-date" class="mr-2">End<strong>:</strong></label>
-                    <input type="date" id="end-date" name="end-date" class="form-control mr-3">
-            
-                    <input type="submit" value="Search Messages" action="/api/v1/gmail/messages//<string:end_date>" class="btn btn-outline-success">
+                    <input type="date" id="end-date" name="end-date" class="form-control mr-3" required>
+                    
+                    <button type="submit" class="btn btn-outline-success">Search Messages</button>
                 </form>
             </div>    
         </div>
     </nav>
-<p>{% block content %}{% endblock %}</p>
-<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script></body>
-<!-- Script tags -->
-<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js"
-        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
-        crossorigin="anonymous"></script>
-</body>
+    <p>{% block content %}{% endblock %}</p>
+        <!-- Script tags -->
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js"
+                integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+                crossorigin="anonymous"></script>
+        <script>
+            function submitForm() {
+                var startDate = document.getElementById('start-date').value;
+                var endDate = document.getElementById('end-date').value;
+
+                if (startDate && endDate || endDate && !startDate) {
+                    var url = `/api/v1/gmail/messages/${startDate}/${endDate}`;
+                    
+                    // Redirect to the constructed URL
+                    window.location.href = url;
+                    return false; // Prevent the form from submitting the default way
+                } else {
+                    alert('Please select both start and end dates\nor at least the end date.');
+                    return false;
+                }
+            }
+        </script>
+    </body>
 </html>
