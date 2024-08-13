@@ -13,7 +13,8 @@ from simplegmail import Gmail
 from simplegmail.query import construct_query
 from googleapiclient.discovery import build
 from oauth2client.client import AccessTokenCredentials, HttpAccessTokenRefreshError
-import openai
+from dotenv import load_dotenv
+from openai import OpenAI
 
 
 app = Flask(__name__)
@@ -66,7 +67,6 @@ def login(): #TODO: make sure this solv the problem of the token
             else:
                 logging.error(f"An unexpected error occurred: {e}")
                 return render_template("error.html", message="An unexpected error occurred. Please try again.")
-        print(f"Loaded API Key: {shared_resources.openai_api_key}")
         return redirect(url_for("get_brief_of_today"))
 
     return render_template("login.html")
@@ -209,20 +209,27 @@ def display_send_massage_page():
 
 @app.route('/api/v1/chat', methods=['POST'])
 def chat():
+    # Load environment variables from the .env file
+    load_dotenv()
+
+    # Initialize the OpenAI client with the API key
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    
     user_message = request.json.get('message')
 
     if not user_message:
         return jsonify({'error': 'No message provided'}), 400
- 
-    response = openai.ChatCompletion.create(
+
+    chat_completion = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant. Help the user to write an email based on their request."},
-            {"role": "user", "content": user_message}],
+            {"role": "system", "content": "You are a helpful assistant. Help the user to write an email based on their request. Answer shortly and clearly."},
+            {"role": "user", "content": user_message}
+        ],
         max_tokens=150
     )
-    bot_response = response['choices'][0]['message']['content'].strip()
-
+    
+    bot_response = chat_completion.choices[0].message.content.strip()
     return jsonify({'response': bot_response})
 
 
