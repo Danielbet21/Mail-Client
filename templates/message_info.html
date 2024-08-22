@@ -1,31 +1,25 @@
 {% extends 'base.html' %}
 
 {% block title %} Deft.B | {{ title }}{% endblock %}
-
-{% block content %}
+{% block head %}
+    {{ super() }}
     <style>
         .message-content img {
             max-width: 100%;
-            max-height: 500px;  /* adjust as needed */
+            max-height: 100%;  /* adjust as needed */
             height: auto;
         }
-        .navbar, .container {
+        .container {
             direction: ltr;
         }
-        .navbar {
-            width: 100vw !important;
-            position: absolute !important;
-            left: 50% !important;
-            right: 50% !important;
-            margin-left: -50vw !important;
-            margin-right: -50vw !important;
-        }
         body {
-          padding-bottom: 70px; 
+            padding-bottom: 70px; 
         }
-        
     </style>
+{% endblock %}
+{% block content %}
     <div class="container">
+        <br>
         <div class="row">
             <div class="col-md-12">
                 <p><strong>Subject: </strong> {{ message.subject }}</p>

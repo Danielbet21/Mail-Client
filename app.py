@@ -4,28 +4,30 @@ from datetime import date
 import os
 import webbrowser
 from threading import Timer
+from flask import (Flask, flash, jsonify, redirect, render_template, request, session, url_for)
+from simplegmail import Gmail
+from simplegmail.query import construct_query
+from oauth2client.client import HttpAccessTokenRefreshError
+from dotenv import load_dotenv
+from openai import OpenAI
 import pymongo
 import data_base
 import shared_resources
 from constent import Constent
-from flask import (Flask, flash, jsonify, redirect, render_template, request, session, url_for)
-from simplegmail import Gmail
-from simplegmail.query import construct_query
-from googleapiclient.discovery import build
-from oauth2client.client import AccessTokenCredentials, HttpAccessTokenRefreshError
-from dotenv import load_dotenv
-from openai import OpenAI
 
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = "secret"
+
+logging.basicConfig(level=logging.INFO)
 sys.stdout.reconfigure(encoding='utf-8')
 
 gmail = Gmail()
 
-logging.basicConfig(level=logging.INFO)
-
-                                                          
+                          
 @app.route("/")
 def home():
     return redirect(url_for("login"))
@@ -34,51 +36,29 @@ def home():
 @app.route("/api/v1/gmail/login", methods=["POST", "GET"])
 def login(): #TODO: make sure this solv the problem of the token
     if request.method == 'POST':
-        db = shared_resources.client["Deft"]
         user_email = request.form['email']
         session['email'] = user_email
-        found = db["Users"].count_documents({"email": user_email})
+        found = data_base.find_user(session['email'])
         if not found:
-            logging.info("making a new document for the user...")
             data_base.make_db(user_email) 
             data_base.init_db(user_email)
         else:
             data_base.update_db(user_email)
-
+            
         try:
             gmail.list_labels()
         except HttpAccessTokenRefreshError as e:
-            if "Token has been expired or revoked" in str(e):
-                logging.error("Token has been expired or revoked. Refreshing token...")
-                try:
-                    credentials = OAuth2Credentials.from_json(session['credentials'])
-                    if credentials.access_token_expired:
-                        credentials.refresh(httplib2.Http())
-                        session['credentials'] = credentials.to_json()
-                    
-                    # Retry the request after refreshing the token
-                    gmail.list_labels()
-                except HttpAccessTokenRefreshError as refresh_error:
-                    logging.error(f"Failed to refresh token: {refresh_error}")
-                    return render_template("error.html", message="Failed to refresh token. Please re-authenticate.")
-                except Exception as e:
-                    logging.error(f"An unexpected error occurred: {e}")
-                    return render_template("error.html", message="An unexpected error occurred. Please try again.")
-            else:
-                logging.error(f"An unexpected error occurred: {e}")
-                return render_template("error.html", message="An unexpected error occurred. Please try again.")
-        return redirect(url_for("get_brief_of_today"))
+            return Constent.handle_token_error(e)
 
+        return redirect(url_for("get_brief_of_today"))
     return render_template("login.html")
 
 
 @app.route("/api/v1/gmail/user/", methods=["POST", "GET"])
 def user():
     data_base.update_db(session['email'])
-    
     messages = shared_resources.get_messages_inbox()
     messages = data_base.purify_message(messages)
-
     return render_template("user.html", messages=messages, labels=gmail.list_labels(), get_name=shared_resources.get_email_sender_name, title="Inbox")
 
 
@@ -88,7 +68,6 @@ def get_brief_of_today():
         param = {
             "after": today
         }
-
         messages = gmail.get_messages(query=construct_query(**param))
         if len(messages) == 0:
             flash("No messages for today...")
@@ -111,13 +90,10 @@ def get_messages_by_date(str_date: str, end_date: str):
     #     end_date = request.form.get('end-date')
     dates = {
         "after": str_date,
-        
         "before": end_date
     }
-
     logging.info(f'fetching messages from date: {str_date} up until {end_date}')
     messages = gmail.get_messages(query=construct_query(**dates)) #TODO: make a db version of get all the messages by date
-
     return render_template("user.html", messages=messages, title="Message By Date", labels=gmail.list_labels(), get_name=shared_resources.get_email_sender_name)
 
 
@@ -151,27 +127,17 @@ def get_messages_by_label(wanted_label):
 def show_message_info(message_id,labels):
     found = False
     message_from_gmail = None
-    
-    db = shared_resources.client["Deft"]
-    label_names = shared_resources.get_labels(labels, 0)
-    message_collection = db["Messages"]
-    message = message_collection.find_one({"id": message_id})
-     
+    message , label_names = data_base.fetch_message_and_message_labels(message_id,labels)
     if message:
         found = True
-    message_from_gmail = shared_resources.get_message_by_id(message_id) #TODO: make it in async??
+    # this is just to update the message as read #TODO: CAN I MAKE IT OTHERWISE?
+    message_from_gmail = shared_resources.get_message_by_id(message_id)
     
     if "UNREAD" in label_names:
         if message_from_gmail is not None: # message_from_gmail is None if the message is in the trash
             message_from_gmail.mark_as_read()  
-        #update db
         if found:    
-            message_collection = db["Messages"]
-            message_collection.delete_one({"id": message['id']})
-            message = data_base.purify_message(message)
-            message_collection.insert_one(message)
-            db["Users"].update_one({"email": session['email']}, {"$pull": {"unread": message_id}})
-            
+           data_base.update_messages_after_action(message, message_id)
         elif message_from_gmail is not None:
             return render_template("message_info.html",title="message info" , message=message_from_gmail)
 
@@ -209,9 +175,6 @@ def display_send_massage_page():
 
 @app.route('/api/v1/chat', methods=['POST'])
 def chat():
-    # Load environment variables from the .env file
-    load_dotenv()
-
     # Initialize the OpenAI client with the API key
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     
@@ -248,18 +211,18 @@ def move_to_garbage():
         """
         If msg is None it means that the user want to delete a message that is already in the trash
         Hance we need to delete it from the db and the gmail account.
+        #TODO: delete the message from gmail permenatly
         """
-        db["Users"].update_one({"email": session['email']}, {"$pull": {"TRASH": message_id}})
-        db["Messages"].delete_one({"id": message_id}) 
-
+        data_base.update_users_by_pull(email, "TRASH", message_id)
+        data_base.delete_from_collection("Messages", message_id)
         return redirect(url_for("get_messages_by_label", wanted_label="TRASH"))
 
     for label in msg.label_ids:
-      db["Users"].update_one({"email": email}, {"$pull": {label.name: msg.id}})  
+      data_base.update_users_by_pull(email, label.name, msg.id)
         
-    db["Users"].update_one({"email": email}, {"$push": {"TRASH": message_id}}) 
-    db["Messages"].delete_one({"id": msg.id})
-    db["Messages"].insert_one(data_base.purify_message(msg))
+    data_base.update_users_by_push(email, "TRASH", msg.id)
+    data_base.delete_from_collection("Messages", msg.id)
+    data_base.insert_one_document_to_collection("Messages", msg)
     msg.trash()
 
     return redirect(url_for("get_brief_of_today"))
@@ -300,4 +263,7 @@ def add_label_to_message():
 if __name__ == "__main__":
     if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
             Timer(1, lambda: webbrowser.open('http://127.0.0.1:5000')).start()
-    app.run(debug=True)
+    try:
+        app.run(debug=True)
+    except (KeyboardInterrupt, SystemExit):
+        scheduler.shutdown()

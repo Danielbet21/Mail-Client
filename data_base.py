@@ -107,3 +107,43 @@ def purify_message(messages) -> list[dict]:
         messages = Constent.filter_fields(message_dict, labels_to_list)
 
     return messages
+
+def fetch_message_and_message_labels(message_id, labels) -> dict:
+    """
+    Fetches a single message from the database and its labels.
+    """
+    db = shared_resources.client["Deft"]
+    label_names = shared_resources.get_labels(labels, 0)
+    message_collection = db["Messages"]
+    message = message_collection.find_one({"id": message_id})
+    return message, label_names
+
+
+def update_messages_after_action(message, message_id):
+    message_collection = db["Messages"]
+    message_collection.delete_one({"id": message['id']})
+    message = data_base.purify_message(message)
+    message_collection.insert_one(message)
+    db["Users"].update_one({"email": session['email']}, {"$pull": {"unread": message_id}})
+    
+def find_user(email):
+    db = shared_resources.client["Deft"]
+    user = db["Users"].count_documents({"email": email})
+    return user
+
+def update_users_by_pull(email, label, message_id):
+    db = shared_resources.client["Deft"]
+    db["Users"].update_one({"email": email}, {"$pull": {label: message_id}})
+    
+def update_users_by_push(email, label, message_id):
+    db = shared_resources.client["Deft"]
+    db["Users"].update_one({"email": email}, {"$push": {label: message_id}})
+    
+def delete_from_collection(collection_name, message_id):
+    db = shared_resources.client["Deft"]
+    db[collection_name].delete_one({"id": message_id})
+
+def insert_one_document_to_collection(collection_name, message):
+    db = shared_resources.client["Deft"]
+    message = purify_message(message)
+    db[collection_name].insert_one(message)
