@@ -1,10 +1,14 @@
 import logging
 import sys
-from datetime import date
+from datetime import date, datetime, timedelta
+from dateutil import parser
 import os
 import webbrowser
 from threading import Timer
 from flask import (Flask, flash, jsonify, redirect, render_template, request, session, url_for)
+from apscheduler.schedulers.background import BackgroundScheduler
+from apschedular import SchedulerManager  
+from apscheduler.triggers.interval import IntervalTrigger
 from simplegmail import Gmail
 from simplegmail.query import construct_query
 from oauth2client.client import HttpAccessTokenRefreshError
@@ -14,7 +18,6 @@ import pymongo
 import data_base
 import shared_resources
 from constent import Constent
-
 
 # Load environment variables
 load_dotenv()
@@ -27,6 +30,9 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 gmail = Gmail()
 
+# Initialize APScheduler
+scheduler = BackgroundScheduler()
+
                           
 @app.route("/")
 def home():
@@ -38,6 +44,7 @@ def login(): #TODO: make sure this solv the problem of the token
     if request.method == 'POST':
         user_email = request.form['email']
         session['email'] = user_email
+        SchedulerManager.start_scheduler(scheduler, gmail, session['email'])
         found = data_base.find_user(session['email'])
         if not found:
             data_base.make_db(user_email) 
@@ -213,14 +220,14 @@ def move_to_garbage():
         Hance we need to delete it from the db and the gmail account.
         #TODO: delete the message from gmail permenatly
         """
-        data_base.update_users_by_pull(email, "TRASH", message_id)
+        data_base.pull_id_from_users_by_label(email, "TRASH", message_id)
         data_base.delete_from_collection("Messages", message_id)
         return redirect(url_for("get_messages_by_label", wanted_label="TRASH"))
 
     for label in msg.label_ids:
-      data_base.update_users_by_pull(email, label.name, msg.id)
+      data_base.pull_id_from_users_by_label(email, label.name, msg.id)
         
-    data_base.update_users_by_push(email, "TRASH", msg.id)
+    data_base.insert_id_to_Users_by_label(email, "TRASH", msg.id)
     data_base.delete_from_collection("Messages", msg.id)
     data_base.insert_one_document_to_collection("Messages", msg)
     msg.trash()
@@ -232,13 +239,13 @@ def move_to_garbage():
 def add_label_to_message():
         desired_message_id = request.form['message_id']
         desired_label = request.form['wanted_label'] #TODO: hebrew letters are invalid
-        msg = shared_resources.get_message_by_id(desired_message_id)
+        msg = shared_resources.get_message_by_id(desired_message_id) 
         
         email = session['email']
         db = shared_resources.client["Deft"]   
         
         if desired_label == "TRASH":
-            if msg:
+            if msg: 
                 msg.mark_as_not_important()
                 msg.mark_as_read()
                 
@@ -260,6 +267,29 @@ def add_label_to_message():
         return redirect(url_for("get_brief_of_today"))
 
 
+@app.route('/api/v1/gmail/messages/cached', methods=['GET'])
+def get_cached_messages():
+    db = shared_resources.client["Deft"]
+    messages_collection = db["Messages"]
+    timestamp = request.args.get('timestamp')
+    if not timestamp:
+        return jsonify({'error': 'Timestamp is required'}), 400
+
+    try:
+        current_time = parser.parse(timestamp)
+    except ValueError:
+        return jsonify({'error': 'Invalid timestamp format'}), 400
+
+    five_minutes_ago = current_time - timedelta(minutes=5)
+
+    messages = list(messages_collection.find({
+        'date': {'$gte': five_minutes_ago}
+    }))
+    print(messages)
+
+    return jsonify({'messages': messages})
+
+
 if __name__ == "__main__":
     if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
             Timer(1, lambda: webbrowser.open('http://127.0.0.1:5000')).start()
@@ -267,3 +297,5 @@ if __name__ == "__main__":
         app.run(debug=True)
     except (KeyboardInterrupt, SystemExit):
         scheduler.shutdown()
+        shared_resources.gmail_cache.clear()
+        

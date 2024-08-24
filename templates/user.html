@@ -173,8 +173,10 @@
          alt="No messages">
     </div>
     {% else %}
+    <div id="message-row">
     {% for msg in messages %}
         {% if "UNREAD" in msg.label_ids %}
+
         <div class="message-row">
             <div class="message-sender-subject">
                 <p><strong><a href="{{ url_for('get_messages_by_source', sender_email = msg.sender) }}" style="color: black;">{{ get_name(msg.sender) }}</a></strong></p>
@@ -257,6 +259,7 @@
         </div>
         {% endif %}
     {% endfor %}
+    </div>
     {% endif %}
     {% endblock %}</p>
     <!-- Script tags -->
@@ -284,5 +287,64 @@
             }
         }
     </script>
+    <!-- AJAX Script to Update Messages -->
+<script>
+    var lastMessageId = null;
+
+    function fetchAndUpdateMessages() {
+        var currentTime = new Date().toISOString();
+        
+        $.ajax({
+            url: '/api/v1/gmail/messages/cached',
+            method: 'GET',
+            data: {
+                timestamp: currentTime
+            },
+            success: function(response) {
+                if (response.messages.length === 0) {
+                    $('#message-row').empty().append('<div class="no_mail"><p>No new messages...</p></div>');
+                } else {
+                    var newMessages = response.messages.filter(function(message) {
+                        return message.id !== lastMessageId;
+                    });
+
+                    if (newMessages.length > 0) {
+                        lastMessageId = newMessages[0].id;
+                        $('#message-row').empty();
+
+                        newMessages.forEach(function(message) {
+                            var messageHtml = `
+                                <div class="message-row">
+                                    <div class="message-sender-subject">
+                                        <p><a href="/api/v1/gmail/messages/${message.id}" style="color: black;">${message.subject}</a></p>
+                                        <p><strong>${message.sender}</strong></p>
+                                    </div>
+                                    <div class="message-snippet">
+                                        <p>${message.snippet}</p>
+                                    </div>
+                                    <div class="message-date">
+                                        <p>${message.date}</p>
+                                    </div>
+                                </div>
+                            `;
+                            $('#message-row').append(messageHtml);
+                        });
+                    }
+                }
+            },
+            error: function(error) {
+                console.error('Error fetching messages:', error);
+            }
+        });
+    }
+
+    // Fetch messages every 5 minutes (300000 milliseconds)
+    setInterval(fetchAndUpdateMessages, 300000);
+
+    // Fetch messages on page load
+    $(document).ready(function() {
+        fetchAndUpdateMessages();
+    });
+</script>
     </body>
 </html>

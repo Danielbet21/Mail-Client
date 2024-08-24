@@ -61,7 +61,6 @@ def update_db(email) -> None:
     Get the messages from the user gmail account and check if there's a message that dosent exist in the collection
     by checking the id & labels of the message
     """
-    logging.info('\ninside of update\n\n')
     db = shared_resources.client["Deft"]
     users_collection = db["Users"]
     message_collection = db["Messages"]
@@ -131,11 +130,11 @@ def find_user(email):
     user = db["Users"].count_documents({"email": email})
     return user
 
-def update_users_by_pull(email, label, message_id):
+def pull_id_from_users_by_label(email, label, message_id):
     db = shared_resources.client["Deft"]
     db["Users"].update_one({"email": email}, {"$pull": {label: message_id}})
     
-def update_users_by_push(email, label, message_id):
+def insert_id_to_Users_by_label(email, label, message_id):
     db = shared_resources.client["Deft"]
     db["Users"].update_one({"email": email}, {"$push": {label: message_id}})
     
@@ -147,3 +146,8 @@ def insert_one_document_to_collection(collection_name, message):
     db = shared_resources.client["Deft"]
     message = purify_message(message)
     db[collection_name].insert_one(message)
+    
+def insert_many_documents_to_collection(collection_name, messages):
+    db = shared_resources.client["Deft"]
+    messages = purify_message(messages)
+    db[collection_name].insert_many(messages)
