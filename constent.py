@@ -1,3 +1,5 @@
+import shared_resources
+
 class Constent():
     fields = ["sender", 
               "subject", 
@@ -45,3 +47,10 @@ class Constent():
         else:
             logging.error(f"An unexpected error occurred: {e}")
             return render_template("error.html", message="An unexpected error occurred. Please try again.")
+        
+    @staticmethod
+    def update_message_status(message_id):
+        message_from_gmail = shared_resources.get_message_by_id(message_id)
+        if message_from_gmail is not None:
+            message_from_gmail.mark_as_read()
+            

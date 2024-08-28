@@ -1,4 +1,5 @@
 import logging
+import threading
 import sys
 from datetime import date, datetime, timedelta
 from dateutil import parser
@@ -131,24 +132,19 @@ def get_messages_by_label(wanted_label):
 
 
 @app.route('/api/v1/gmail/messages/show_message_info/<message_id>/<labels>', methods=['GET'])
-def show_message_info(message_id,labels):
+def show_message_info(message_id, labels):
     found = False
-    message_from_gmail = None
-    message , label_names = data_base.fetch_message_and_message_labels(message_id,labels)
+    message = None
+    message, label_names = data_base.fetch_message_and_message_labels(message_id, labels)
     if message:
         found = True
-    # this is just to update the message as read #TODO: CAN I MAKE IT OTHERWISE?
-    message_from_gmail = shared_resources.get_message_by_id(message_id)
-    
+    # Start a new thread to update the message status
     if "UNREAD" in label_names:
-        if message_from_gmail is not None: # message_from_gmail is None if the message is in the trash
-            message_from_gmail.mark_as_read()  
-        if found:    
-           data_base.update_messages_after_action(message, message_id)
-        elif message_from_gmail is not None:
-            return render_template("message_info.html",title="message info" , message=message_from_gmail)
-
-    return render_template("message_info.html",title="message info" , message=message)
+        thread = threading.Thread(target=Constent.update_message_status, args=(message_id))
+        thread.start()
+    if found:
+            data_base.update_messages_after_action(message_from_gmail, message_id)
+    return render_template("message_info.html", title="message info", message=message)
 
 
 @app.post('/api/v1/gmail/messages/send')

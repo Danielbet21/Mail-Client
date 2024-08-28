@@ -142,9 +142,9 @@
                     <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-toggle="dropdown"
                         aria-haspopup="true" aria-expanded="false">More</a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                        <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/SPAM">Spam</a>
-                        <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/CATEGORY_PERSONAL">Personal</a>
-                        <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/CATEGORY_SOCIAL">Social</a>
+                        {% for label in labels %}
+                            <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/{{ label.name }}">{{ label.name }}</a>
+                        {% endfor %}
                     </div>
                 </li>
             </ul>

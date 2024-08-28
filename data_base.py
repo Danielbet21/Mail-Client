@@ -66,17 +66,20 @@ def update_db(email) -> None:
     message_collection = db["Messages"]
     labels = gmail.list_labels()
    
-    for label in labels: #TODO: use faster data structure to contain the messages
+    for label in labels:
         messages = gmail.get_messages(query=f"label: {label.name}")
         for msg in messages:
             found =  message_collection.count_documents({"id": msg.id, "label_ids": labels_to_list(msg.label_ids)})
             if not found:
-                found2 = message_collection.find_one({"id": msg.id})
-                if found2:
+                found2 = message_collection.find_one({"id": msg.id}) # check if the message is in the collection but with different labels
+                if found2: #TODO: check in a more elegant way
                     message_collection.delete_one({"id": msg.id})
                 message_collection.insert_one(purify_message(msg))
-                if any(label.name in categories for label in msg.label_ids):
-                    category_handler(msg, label.name, email)
+                for label in msg.label_ids:
+                    logging.info(f"the name: {label.name} ================================================")
+                    if label.name in categories:
+                        logging.info(f"category_handler: {label.name} ================================================")
+                        category_handler(msg, label.name, email)
 
 
 def category_handler(message, label, email)-> None:
@@ -84,6 +87,8 @@ def category_handler(message, label, email)-> None:
     user_collection = db["Users"]
     message = purify_message(message)
     user_collection.update_one({"email": email}, {"$push": {label: message["id"]}})
+    logging.info(f"in category_handler, pushed to collection: {label} ================================================")
+
 
 
 def labels_to_list(labels)-> list[str]: #TODO: change the isertion to the function 
@@ -119,9 +124,10 @@ def fetch_message_and_message_labels(message_id, labels) -> dict:
 
 
 def update_messages_after_action(message, message_id):
+    db = shared_resources.client["Deft"]
     message_collection = db["Messages"]
     message_collection.delete_one({"id": message['id']})
-    message = data_base.purify_message(message)
+    message = purify_message(message)
     message_collection.insert_one(message)
     db["Users"].update_one({"email": session['email']}, {"$pull": {"unread": message_id}})
     
