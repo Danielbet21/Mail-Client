@@ -2,6 +2,8 @@ from simplegmail import Gmail
 from datetime import datetime
 import shared_resources
 from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.schedulers.base import STATE_RUNNING
+from apscheduler.schedulers.background import BackgroundScheduler
 import requests
 import data_base
 
@@ -21,14 +23,17 @@ class SchedulerManager:
 
 
     @staticmethod
-    def start_scheduler(scheduler, gmail, user_email):
+    def start_scheduler(scheduler: BackgroundScheduler, gmail, user_email):
         # Add a job to the scheduler
         scheduler.add_job(
             func=SchedulerManager.check_emails,
-            trigger=IntervalTrigger(minutes=5),  # Run every 1 minutes
+            trigger=IntervalTrigger(minutes=5),  # Run every 5 minutes
             id='check_emails_job',
             name='Check emails every 5 minutes',
             replace_existing=True,
             kwargs={'gmail': gmail, 'user_email': user_email}
         )
-        scheduler.start()
+
+        # Start the scheduler if it is not already running
+        if scheduler.state != STATE_RUNNING:
+            scheduler.start()
