@@ -1,48 +1,75 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <style>
-        .navbar {
-            position: fixed;
-            top: 0;
-            width: 100%;
-            z-index: 1000; 
-         }
-         .navbar-logo {
+         .navbar {
+            background-color: #ffffff;
+            overflow: visible;
+            display: flex;
+            align-items: center; 
+            border-bottom: 1.5px solid #a19f9f; 
+        }
+
+        .navbar-logo {
+            margin-right: auto; 
             display: flex;
             align-items: center;
-            justify-content: center;
-            width: 10%;
-            height: 5%;
-            margin-right: 15px;
+            padding: 0px;
         }
-        .nav-item {
-            font-weight: bold; 
-            margin-right: 10px; 
-            Font-family: 'Disket Mono', monospace;
+
+        .navbar-logo img {
+            width: 80px; 
+            height: auto;
         }
         .dropdown-menu {
-            font-size: 1rem; 
-            text-align: left; 
-            overflow: visible;
-            z-index: 1050;
+            position: absolute;
+            z-index: 1000; 
+            left: 0;
+            top: 100%; 
+            margin-top: 0.125rem;
+            font-size: 15px;
         }
-        .dropdown-menu .dropdown-item {
-            font-size: 1rem; 
-            text-align: left; 
+
+        .nav-list {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-grow: 1; 
+            justify-content: flex-start; 
         }
-        .flash-message {
-            font-size: 20px; 
-            color: rgb(210, 74, 37); 
-            background-color: whitesmoke; 
-            padding: 10px; 
-            margin-bottom: 10px; 
+
+        .nav-list li {
+            display: inline;
+            position: relative;
+        }
+
+        .nav-list li a { 
+            display: block;
+            color: rgb(0, 0, 0);
+            text-align: center;
+            padding: 14px 20px;
+            text-decoration: none;
+        }
+
+        .nav-list li a:hover {
+            color:#085;
+            font-style: italic;
+        }
+        .nav-list li a:active {
+            color: #085; 
+            font-weight: bolder;
+        }
+        .nav-item.dropdown:hover .dropdown-menu {
+            display: block;
         }
         .btn-outline-success {
-            font-family: 'Disket Mono', monospace;
+            font-family: 'sans-serif', monospace;
         }
         .container {
             overflow: hidden;
@@ -52,7 +79,7 @@
             height: auto;
         }
         .date-container{
-            font-family: 'Disket Mono', monospace;
+            font-family: 'sans-serif', monospace;
             margin-left: 40px;
             font-size: 15px; 
             color: rgb(128, 132, 130); 
@@ -65,27 +92,32 @@
             padding: 10px 0;
             padding: 20px;
 
-            border-radius: 25px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             background-color: #ffffff;
             flex-direction: row;
             gap: 1px;
-            margin: 20px 0;
+            margin: 2px 0;
         }
         .message-row:hover {
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-            }
-        .message-sender-subject {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
+            border: 1px #000000;
         }
+        .message-row .message-sender-subject {
+            width: 500px; 
+        }
+        .message-row .message-sender-subject a {
+            color: #000000;
+            text-decoration: none;
+            word-wrap: break-word; 
+            white-space: normal;   
+        }
+
         .message-snippet {
             display: flex;
             flex: 1;
             text-align: center;
             align-items: center;
             justify-content: center;
+            color:#a19f9f;
         }
         .message-date {
             flex: 1;
@@ -106,44 +138,38 @@
             height: 60vh;
         }
         body {
-          padding-top: 110px; 
-          background-color: #f0f4f8;
+            margin: 0;
+            font-family: sans-serif;
         }
     </style>
-    <title>{% block title %}Deft.B | {{title}}{% endblock %}</title>
+    <title>{% block title %}Tardigrade | {{title}}{% endblock %}</title>
 </head>
 <body> 
     <!-- Navigation bar code -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <nav class="navbar">
         <a class="navbar-logo" href="/api/v1/gmail/messages/brief_of_today">
-            <img src="{{ url_for('static', filename='images/logo-parrot.png') }}" alt="Parrot Logo" style="width: 85%;">
-
+            <img src="{{ url_for('static', filename='/images/better_tardigrade.png') }}" alt="Parrot Logo">
         </a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
-                aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarSupportedContent">
-            <ul class="navbar-nav mr-auto">
-                <li class="nav-item active">
-                    <a class="nav-link" href="/api/v1/gmail/user/">Inbox</a>
-                </li>
-                <li class="nav-item active">
-                    <a class="nav-link" href="/api/v1/gmail/messages/send"><i class="fas fa-light fa-pencil"></i></a>
-                </li>
-                <li class="nav-item active">
-                    <a class="nav-link" href="/api/v1/gmail/messages/by_label/TRASH"><i class="fas fa-trash-alt"></i></a>
-                </li>
-                <li class="nav-item active">
-                    <a class="nav-link" href="/api/v1/gmail/messages/by_label/UNREAD">Unread</a>
-                </li>
-
-                <li class="nav-item dropdown active">
-                    <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-toggle="dropdown"
-                        aria-haspopup="true" aria-expanded="false">More</a>
+        <ul class="nav-list">
+            <li class="nav-item">
+                <a class="nav-link" href="/api/v1/gmail/user/">Inbox</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/api/v1/gmail/messages/send"><i class="fas fa-light fa-pencil-alt"></i></a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/api/v1/gmail/messages/by_label/TRASH"><i class="fas fa-trash-alt"></i></a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/api/v1/gmail/messages/by_label/UNREAD">Unread</a>
+            </li>
+            <li class="nav-item dropdown">
+                <a href="#" class="nav-link dropdown-toggle" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    Dropdown
+                </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                         {% for label in labels %}
-                            <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/{{ label.name }}">{{ label.name }}</a>
+                                <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/{{ label.name }}">{{ label.name }}</a>
                         {% endfor %}
                     </div>
                 </li>
@@ -179,8 +205,8 @@
 
         <div class="message-row">
             <div class="message-sender-subject">
-                <p><strong><a href="{{ url_for('get_messages_by_source', sender_email = msg.sender) }}" style="color: black;">{{ get_name(msg.sender) }}</a></strong></p>
-                <p><strong><a href="{{ url_for('show_message_info', message_id=msg.id, labels=msg.label_ids) }}" style="color: black;">{{ msg.subject }}</a></strong></p>
+                <p><strong><a href="{{ url_for('get_messages_by_source', sender_email = msg.sender) }}">{{ get_name(msg.sender) }}</a></strong></p>
+                <p><strong><a href="{{ url_for('show_message_info', message_id=msg.id, labels=msg.label_ids) }}">{{ msg.subject }}</a></strong></p>
             </div>
             <div class="message-snippet">
                 {% if msg.snippet|length <= 30 %}
@@ -192,6 +218,18 @@
             <div class="message-date">
                 <p><strong>{{ msg.date[:-6] }}</strong></p>
             </div>
+            {% if attachments %}
+            <div class="attachments">
+                {% for attachment in attachments %}
+                    <div class="attachment">
+                        <a href="{{ url_for('download_attachment', message_id=attachment['message_id'], filename=attachment['filename']) }}" target="_blank">
+                            <div class="icon">{{ attachment['filename'].split('.')[-1].upper() }}</div>
+                            <div class="filename">{{ attachment['filename'] }}</div>
+                        </a>
+                    </div>
+                {% endfor %}
+                </div>
+            {% endif %}
             <!-- Dropdown menu -->
             <div class="btn-group" style="margin-left: 20px;">
                 <button type="button" class="btn btn-outline-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -203,6 +241,8 @@
                     <form action="{{ url_for('add_label_to_message') }}" method="post">
                         <input type="hidden" name="message_id" value="{{ msg.id }}">
                         <input type="hidden" name="wanted_label" value="{{ label.name }}">
+                        <input type="hidden" name="date" value="{{ msg.date }}">
+                        <input type="hidden" name="subject" value="{{ msg.subject }}">
                         <button type="submit" class="btn btn-outline-primary dropdown-item">{{ label.name }}</button>
                     </form>
                     {% endfor %}
@@ -220,8 +260,8 @@
         {% else %}
         <div class="message-row">
             <div class="message-sender-subject">
-                <p><a href="{{ url_for('get_messages_by_source', sender_email= msg.sender) }}" style="color: black;">{{ get_name(msg.sender) }}</a></p>
-                <p><a href="{{ url_for('show_message_info', message_id=msg.id, labels=msg.label_ids) }}" style="color: black;">{{ msg.subject }}</a></p>
+                <p><a href="{{ url_for('get_messages_by_source', sender_email= msg.sender) }}">{{ get_name(msg.sender) }}</a></p>
+                <p><a href="{{ url_for('show_message_info', message_id=msg.id, labels=msg.label_ids) }}">{{ msg.subject }}</a></p>
             </div>
             <div class="message-snippet">
                 {% if msg.snippet|length <= 30 %}
@@ -244,6 +284,8 @@
                     <form action="{{ url_for('add_label_to_message') }}" method="post">
                         <input type="hidden" name="message_id" value="{{ msg.id }}">
                         <input type="hidden" name="wanted_label" value="{{ label.name }}">
+                        <input type="hidden" name="date" value="{{ msg.date }}">
+                        <input type="hidden" name="subject" value="{{ msg.subject }}">
                         <button type="submit" class="btn btn-outline-primary dropdown-item">{{ label.name }}</button>
                     </form>
                     {% endfor %}

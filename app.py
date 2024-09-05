@@ -6,7 +6,7 @@ from dateutil import parser
 import os
 import webbrowser
 from threading import Timer
-from flask import (Flask, flash, jsonify, redirect, render_template, request, session, url_for)
+from flask import (Flask, flash, jsonify, redirect, render_template, request, session, url_for, send_file)
 from apscheduler.schedulers.background import BackgroundScheduler
 from apschedular import SchedulerManager  
 from apscheduler.triggers.interval import IntervalTrigger
@@ -18,10 +18,13 @@ from openai import OpenAI
 import pymongo
 import data_base
 import shared_resources
+import sqlite_file 
 from constent import Constent
 
 # Load environment variables
 load_dotenv()
+
+sqlite_file.init_sqlite()
 
 app = Flask(__name__)
 app.secret_key = "secret"
@@ -41,7 +44,7 @@ def home():
 
 
 @app.route("/api/v1/gmail/login", methods=["POST", "GET"])
-def login(): #TODO: make sure this solv the problem of the token
+def login(): #TODO: make sure this solve the problem of the token
     if request.method == 'POST':
         user_email = request.form['email']
         session['email'] = user_email
@@ -100,7 +103,6 @@ def get_messages_by_date(str_date: str, end_date: str):
         "after": str_date,
         "before": end_date
     }
-    logging.info(f'fetching messages from date: {str_date} up until {end_date}')
     messages = gmail.get_messages(query=construct_query(**dates)) #TODO: make a db version of get all the messages by date
     return render_template("user.html", messages=messages, title="Message By Date", labels=gmail.list_labels(), get_name=shared_resources.get_email_sender_name)
 
@@ -124,6 +126,7 @@ def get_messages_by_label(wanted_label):
     wanted_label_messages_ids = user_document.get(wanted_label, [])
     wanted_label_messages_ids = list(set(wanted_label_messages_ids))
     messages = list( db["Messages"].find({"id": {"$in": wanted_label_messages_ids}}))    
+    logging.info(f"\nmessages len:\n {messages[0]}\n =============== \n")
     #drops the initial "category_"
     if wanted_label[:9] == "CATEGORY_":
         wanted_label = wanted_label[9:].lower().capitalize()
@@ -133,18 +136,16 @@ def get_messages_by_label(wanted_label):
 
 @app.route('/api/v1/gmail/messages/show_message_info/<message_id>/<labels>', methods=['GET'])
 def show_message_info(message_id, labels):
-    found = False
-    message = None
     message, label_names = data_base.fetch_message_and_message_labels(message_id, labels)
-    if message:
-        found = True
-    # Start a new thread to update the message status
+    #TODO: fetch attachments from the sqlite db
+    subject = message['subject']
+    date = message['date']
     if "UNREAD" in label_names:
-        thread = threading.Thread(target=Constent.update_message_status, args=(message_id))
+        thread = threading.Thread(target=Constent.mark_gmail_message_as_read, args=(message_id,date,subject))
         thread.start()
-    if found:
-            data_base.update_messages_after_action(message_from_gmail, message_id)
-    return render_template("message_info.html", title="message info", message=message)
+    attachments = sqlite_file.get_attachments_by_message_id(message_id)
+    return render_template("message_info.html", title="message info", message=message, attachments=attachments , labels=gmail.list_labels())
+
 
 
 @app.post('/api/v1/gmail/messages/send')
@@ -168,12 +169,13 @@ def send_message():
     }
     sent = gmail.send_message(**data)
 
-    return redirect(url_for("get_brief_of_today"))
+    return redirect(url_for("get_brief_of_today", labels=gmail.list_labels()))
 
 
 @app.get('/api/v1/gmail/messages/send')
 def display_send_massage_page():
-    return render_template("send_msg.html")
+    
+    return render_template("send_msg.html", labels=gmail.list_labels())
 
 
 @app.route('/api/v1/chat', methods=['POST'])
@@ -209,11 +211,11 @@ def move_to_garbage():
     if message_id is None:
         message_id = session.get('message_id')
         
-    msg = shared_resources.get_message_by_id(message_id)
+    message, labels = data_base.fetch_message_and_message_labels(message_id, None)
+    msg = shared_resources.get_message_by_id_from_gmail(message_id,message['date'],message['subject'])
     if msg is None: 
         """
-        If msg is None it means that the user want to delete a message that is already in the trash
-        Hance we need to delete it from the db and the gmail account.
+        the user want to delete a message that is already in the trash=>need to delete it from the db and the gmail account.
         #TODO: delete the message from gmail permenatly
         """
         data_base.pull_id_from_users_by_label(email, "TRASH", message_id)
@@ -234,8 +236,10 @@ def move_to_garbage():
 @app.route('/api/v1/gmail/messages/add_label_to_message', methods=['POST'])
 def add_label_to_message():
         desired_message_id = request.form['message_id']
+        date = request.form['date']
+        subject = request.form['subject']
         desired_label = request.form['wanted_label'] #TODO: hebrew letters are invalid
-        msg = shared_resources.get_message_by_id(desired_message_id) 
+        msg = shared_resources.get_message_by_id_from_gmail(desired_message_id,date,subject) 
         
         email = session['email']
         db = shared_resources.client["Deft"]   
@@ -286,6 +290,17 @@ def get_cached_messages():
     return jsonify({'messages': messages})
 
 
+@app.route('/api/v1/gmail/attachments/<message_id>/<filename>')
+def download_attachment(message_id, filename):
+    data = sqlite_file.get_attachment_data(message_id, filename)
+    if data:
+        return send_file(
+            io.BytesIO(data),
+            attachment_filename=filename,
+            as_attachment=True
+        )
+    return abort(404, description="Attachment not found")
+
 if __name__ == "__main__":
     if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
             Timer(1, lambda: webbrowser.open('http://127.0.0.1:5000')).start()
@@ -293,5 +308,4 @@ if __name__ == "__main__":
         app.run(debug=True)
     except (KeyboardInterrupt, SystemExit):
         scheduler.shutdown()
-        shared_resources.gmail_cache.clear()
-        
+        shared_resources.gmail_cache.clear() 

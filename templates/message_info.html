@@ -12,6 +12,26 @@
         .container {
             direction: ltr;
         }
+        .attachment {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .icon {
+            padding: 10px 20px;  
+            border-radius: 25px;  
+            background-color: #085;
+            color: #fff;
+            display: inline-block;
+            font-weight: bold;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .filename {
+            font-size: 14px;
+            margin-left: 10px;
+        }
         body {
             padding-bottom: 70px; 
         }
@@ -29,8 +49,17 @@
                     <div>{{ message.html|safe }}</div>
                 </div>
                 <p>{{ message.text }}</p>
-                {% if message.attachments != [] %}
-                <p>{{ message.attachments }}</p>
+                {% if attachments %}
+                    <div class="attachments">
+                        {% for attachment in attachments %}
+                            <div class="attachment">
+                                <a href="{{ url_for('download_attachment', message_id=attachment['message_id'], filename=attachment['filename']) }}" target="_blank">
+                                    <div class="icon">{{ attachment['filename'].split('.')[-1].upper() }}</div>
+                                    <div class="filename">{{ attachment['filename'] }}</div>
+                                </a>
+                            </div>
+                        {% endfor %}
+                        </div>
                 {% endif %}
             </div>
         </div>
