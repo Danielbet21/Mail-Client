@@ -11,4 +11,4 @@ google_sign_in.html
 loading.html
 .env
 .vscode
-my_celery.py
+attachments.db
