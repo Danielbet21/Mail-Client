@@ -1,4 +1,7 @@
 import shared_resources
+import pytz
+from dateutil import parser
+from datetime import datetime, timedelta
 
 class Constent():
     fields = ["sender", 
@@ -15,8 +18,7 @@ class Constent():
               "to", 
               "cc",
               "bcc",
-              "label_ids",
-              "attachements"]  # TODO: attachements isn't serializable
+              "label_ids"]  
    
     @staticmethod
     def filter_fields(message, labels_to_list) -> dict:
@@ -25,7 +27,6 @@ class Constent():
     @staticmethod
     def move_to_the_right_label(email,desired_label,desired_message_id,db) -> None:
         db["Users"].update_one({"email":email}, {"$pull": {"UNREAD": desired_message_id}})
-        db["Users"].update_one({"email":email}, {"$pull": {"INBOX": desired_message_id}})
         db["Users"].update_one({"email":email}, {"$push": {desired_label: desired_message_id}})
         
     @staticmethod
@@ -49,8 +50,45 @@ class Constent():
             return render_template("error.html", message="An unexpected error occurred. Please try again.")
         
     @staticmethod
-    def update_message_status(message_id):
-        message_from_gmail = shared_resources.get_message_by_id(message_id)
+    def mark_gmail_message_as_read(message_id,date,subject):
+        message_from_gmail = shared_resources.get_message_by_id_from_gmail(message_id,date,subject)
         if message_from_gmail is not None:
             message_from_gmail.mark_as_read()
-            
+
+    @staticmethod
+    def convert_to_utc_plus_3(date_str):
+        utc_plus_3 = pytz.timezone('Etc/GMT-3')
+        date = parser.isoparse(date_str)
+        date_utc_plus_3 = date.astimezone(utc_plus_3)
+        
+        return date_utc_plus_3
+    
+    
+    @staticmethod
+    def get_today_date()-> str:
+        today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(hours=3)
+        todays_date_str = today.strftime("%Y-%m-%d %H:%M:%S+03:00")
+        return todays_date_str
+    
+    
+    @staticmethod
+    def drop_trash_messages(messages)-> list:
+        for message in messages:
+            if message["label_ids"] == ["TRASH"]:
+                messages.remove(message)
+        return messages
+    
+    
+    @staticmethod
+    def get_all_messages_erlier_than_latest_message(message_collection) -> list:
+        todays_date = Constent.get_today_date()
+        messages  = message_collection.find({"date":{"$gte": todays_date}, "label_ids":{"$ne": "TRASH"}}).sort("date", -1)   
+        messages = list(messages)
+        return messages
+        
+    @staticmethod
+    def there_is_messages_after_latest_message_from_gmail(gmail, users_collectionn, lastest_message_date) -> bool:
+        messages = gmail.get_messages(query=f"after: {lastest_message_date}")
+        if messages:
+            return True
+        return False

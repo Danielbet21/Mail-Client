@@ -66,8 +66,10 @@ def login(): #TODO: make sure this solve the problem of the token
 
 
 @app.route("/api/v1/gmail/user/", methods=["POST", "GET"])
-def user():
-    data_base.update_db(session['email'])
+def user(is_done = False):
+    if not is_done:
+        data_base.update_db(session['email'])
+
     messages = shared_resources.get_messages_inbox()
     messages = data_base.purify_message(messages)
     return render_template("user.html", messages=messages, labels=gmail.list_labels(), get_name=shared_resources.get_email_sender_name, title="Inbox")
@@ -75,17 +77,14 @@ def user():
 
 @app.route('/api/v1/gmail/messages/brief_of_today', methods=['GET'])
 def get_brief_of_today():
-        today = date.today()
-        param = {
-            "after": today
-        }
-        messages = gmail.get_messages(query=construct_query(**param))
-        if len(messages) == 0:
-            flash("No messages for today...")
-            return redirect(url_for("user"))
+        db = shared_resources.client["Deft"]
+        users_collection = db["Users"]
+        message_collection = db["Messages"]
         
-        messages = data_base.purify_message(messages)
-
+        messages = Constent.get_all_messages_erlier_than_latest_message(message_collection)
+        logging.info(f"\n\nFound {len(messages)} messages for today\n")
+        if not messages:
+            return redirect(url_for("user", is_done=True))
         return render_template("user.html", messages=messages, title="Today's Brief", labels=gmail.list_labels(), get_name=shared_resources.get_email_sender_name)
 
 
@@ -126,7 +125,6 @@ def get_messages_by_label(wanted_label):
     wanted_label_messages_ids = user_document.get(wanted_label, [])
     wanted_label_messages_ids = list(set(wanted_label_messages_ids))
     messages = list( db["Messages"].find({"id": {"$in": wanted_label_messages_ids}}))    
-    logging.info(f"\nmessages len:\n {messages[0]}\n =============== \n")
     #drops the initial "category_"
     if wanted_label[:9] == "CATEGORY_":
         wanted_label = wanted_label[9:].lower().capitalize()
@@ -136,6 +134,7 @@ def get_messages_by_label(wanted_label):
 
 @app.route('/api/v1/gmail/messages/show_message_info/<message_id>/<labels>', methods=['GET'])
 def show_message_info(message_id, labels):
+    attachments = []
     message, label_names = data_base.fetch_message_and_message_labels(message_id, labels)
     #TODO: fetch attachments from the sqlite db
     subject = message['subject']
@@ -143,7 +142,13 @@ def show_message_info(message_id, labels):
     if "UNREAD" in label_names:
         thread = threading.Thread(target=Constent.mark_gmail_message_as_read, args=(message_id,date,subject))
         thread.start()
-    attachments = sqlite_file.get_attachments_by_message_id(message_id)
+    else:
+        attachments = sqlite_file.get_attachments_by_message_id(message_id)
+        
+    if attachments is None:
+        message = shared_resources.get_message_by_id_from_gmail(message_id,date,subject)
+        attachments = sqlite_file.get_attachments_by_message_id(message_id)
+    
     return render_template("message_info.html", title="message info", message=message, attachments=attachments , labels=gmail.list_labels())
 
 
@@ -308,4 +313,3 @@ if __name__ == "__main__":
         app.run(debug=True)
     except (KeyboardInterrupt, SystemExit):
         scheduler.shutdown()
-        shared_resources.gmail_cache.clear() 
