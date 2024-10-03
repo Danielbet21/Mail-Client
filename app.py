@@ -69,7 +69,7 @@ def login(): #TODO: make sure this solve the problem of the token
 def user(is_done = False):
     if not is_done:
         data_base.update_db(session['email'])
-
+    
     messages = shared_resources.get_messages_inbox()
     messages = data_base.purify_message(messages)
     return render_template("user.html", messages=messages, labels=gmail.list_labels(), get_name=shared_resources.get_email_sender_name, title="Inbox")
@@ -81,7 +81,9 @@ def get_brief_of_today():
         users_collection = db["Users"]
         message_collection = db["Messages"]
         
-        messages = Constent.get_all_messages_erlier_than_latest_message(message_collection)
+        message = message_collection.find_one()
+        
+        messages = data_base.get_all_messages_erlier_than_latest_message(message_collection)
         logging.info(f"\n\nFound {len(messages)} messages for today\n")
         if not messages:
             return redirect(url_for("user", is_done=True))
@@ -124,11 +126,14 @@ def get_messages_by_label(wanted_label):
     user_document = db["Users"].find_one({"email": session['email'].strip()})
     wanted_label_messages_ids = user_document.get(wanted_label, [])
     wanted_label_messages_ids = list(set(wanted_label_messages_ids))
-    messages = list( db["Messages"].find({"id": {"$in": wanted_label_messages_ids}}))    
+    
+    messages = list(message_collection.find({"id": {"$in": wanted_label_messages_ids}})) 
+    logging.info(f"messages: {len(messages)} \n =============== \n\n")
+   
     #drops the initial "category_"
     if wanted_label[:9] == "CATEGORY_":
         wanted_label = wanted_label[9:].lower().capitalize()
-    
+     
     return render_template("user.html", messages=messages, labels=gmail.list_labels(), get_name=shared_resources.get_email_sender_name, title=wanted_label)
 
 
@@ -262,37 +267,14 @@ def add_label_to_message():
                 msg.mark_as_not_important()
                 msg.mark_as_read()
                 
-            Constent.move_to_the_right_label(email,"SPAM",desired_message_id,db)
+            data_base.make_as_read(email,"SPAM",desired_message_id,db)
         else:
             if msg:
                 msg.add_label(desired_label)
                 
-            Constent.move_to_the_right_label(email,desired_label,desired_message_id,db)
+            data_base.make_as_read(email,desired_label,desired_message_id,db)
     
         return redirect(url_for("get_brief_of_today"))
-
-
-@app.route('/api/v1/gmail/messages/cached', methods=['GET'])
-def get_cached_messages():
-    db = shared_resources.client["Deft"]
-    messages_collection = db["Messages"]
-    timestamp = request.args.get('timestamp')
-    if not timestamp:
-        return jsonify({'error': 'Timestamp is required'}), 400
-
-    try:
-        current_time = parser.parse(timestamp)
-    except ValueError:
-        return jsonify({'error': 'Invalid timestamp format'}), 400
-
-    five_minutes_ago = current_time - timedelta(minutes=5)
-
-    messages = list(messages_collection.find({
-        'date': {'$gte': five_minutes_ago}
-    }))
-    print(messages)
-
-    return jsonify({'messages': messages})
 
 
 @app.route('/api/v1/gmail/attachments/<message_id>/<filename>')

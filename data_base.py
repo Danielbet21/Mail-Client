@@ -27,7 +27,6 @@ def init_db(email) -> None:
     db = shared_resources.client["Deft"]
     users_collection = db["Users"]
     message_collection = db["Messages"]
-    message_ids = []
     labels = gmail.list_labels()
     
     for label in labels:
@@ -35,14 +34,15 @@ def init_db(email) -> None:
         if messages:
             latest_message_date = convert_date_to_utc(messages[0].date)
             label_message_ids = [] 
+            
             for msg in messages:
+                msg.date = convert_date_to_utc(msg.date)
                 if message_collection.count_documents({"id": msg.id}) == 0:
                     purified_message = purify_message(msg)
-                    msg.date = convert_date_to_utc(msg.date)
                     message_collection.insert_one(purified_message)
                 else:
                     purified_message = purify_message(msg)
-                    msg.date = convert_date_to_utc(msg.date)
+                    
                 label_message_ids.append(purified_message["id"])
                 
             users_collection.update_one({"email": email}, {"$push": {label.name: {"$each": label_message_ids}}})
@@ -70,7 +70,7 @@ def make_db(email) -> None:
     if not user_data_set:
         labels = gmail.list_labels()
         label_lists = {label.name: [] for label in labels}
-        users_collection.insert_one({"email": email, "name": email_name_of_user, **label_lists, "latest_message": datetime(1970, 1, 1, tzinfo=timezone.utc), "all_ids": []})
+        users_collection.insert_one({"email": email, "name": email_name_of_user, **label_lists, "latest_message": datetime(1970, 1, 1, tzinfo=timezone.utc)})
 
 
 def update_db(email) -> None:
@@ -147,14 +147,16 @@ def purify_message(messages) -> list[dict]:
     """
     Makes the messages list to be valid for mongoDB
     """
+    def process_message(message):
+        message_dict = message.__dict__
+        message_dict = Constent.filter_fields(message_dict, labels_to_list)
+        message_dict['date'] = convert_date_to_utc(message_dict['date'])
+        return message_dict
+
     if isinstance(messages, list):
-        messages = [message.__dict__ for message in messages]  
-        messages = [Constent.filter_fields(message, labels_to_list) for message in messages]  
-   # if the messages is a single message, message is an object from the simplegmail library
+        messages = [process_message(message) for message in messages]
     elif isinstance(messages, message.Message):
-        message_dict = messages.__dict__
-        messages = Constent.filter_fields(message_dict, labels_to_list)
-        return messages
+        messages = process_message(messages)
 
     return messages
 
@@ -180,6 +182,10 @@ def update_messages_after_action(message, message_id)-> None:
     db["Users"].update_one({"email": session['email']}, {"$pull": {"unread": message_id}})
 
 
+def make_as_read(email,desired_label,desired_message_id,db) -> None:
+        db["Users"].update_one({"email":email}, {"$pull": {"UNREAD": desired_message_id}})
+        db["Users"].update_one({"email":email}, {"$push": {desired_label: desired_message_id}})
+        
 
 def find_user(email)-> int:
     db = shared_resources.client["Deft"]
@@ -221,14 +227,19 @@ def get_all_ids_for_user(email)-> list:
     return user["all_ids"]
 
 
-def convert_date_to_utc(date_str)-> datetime:
-    date = parser.isoparse(date_str)    
-    if isinstance(date, str):
-        date = parser.isoparse(date)
-    
-    if date.tzinfo is None:
-        date = date.replace(tzinfo=timezone.utc)
+def convert_date_to_utc(date_input)-> datetime:
+    if isinstance(date_input, datetime):
+        return date_input
     else:
-        date = date.astimezone(timezone.utc)
-    
-    return date
+        date = parser.isoparse(date_input)    
+        if date.tzinfo is None:
+            date = date.replace(tzinfo=timezone.utc)
+        else:
+            date = date.astimezone(timezone.utc)    
+        return date
+
+def get_all_messages_erlier_than_latest_message(message_collection) -> list:
+        todays_date = Constent.get_today_date()
+        messages  = message_collection.find({"date":{"$gte": todays_date}, "label_ids":{"$ne": "TRASH"}}).sort("date", -1)   
+        messages = list(messages)
+        return messages

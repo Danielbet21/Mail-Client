@@ -216,7 +216,7 @@
                 {% endif %}
             </div>
             <div class="message-date">
-                <p><strong>{{ msg.date[:-6] }}</strong></p>
+                <p><strong>{{ msg.date.strftime('%Y-%m-%d %H:%M:%S') }}</strong></p>
             </div>
             {% if attachments %}
             <div class="attachments">
@@ -271,7 +271,7 @@
                 {% endif %}
             </div>
             <div class="message-date">
-                <p>{{ msg.date[:-6] }}</p>
+                <p>{{ msg.date.strftime('%Y-%m-%d %H:%M:%S') }}</p>
             </div>
             <!-- Dropdown menu -->
             <div class="btn-group" style="margin-left: 20px;">

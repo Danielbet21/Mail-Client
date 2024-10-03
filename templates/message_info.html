@@ -44,7 +44,7 @@
             <div class="col-md-12">
                 <p><strong>Subject: </strong> {{ message.subject }}</p>
                 <p><strong>Sender: </strong> {{ message.sender }}</p>
-                <p><strong>Date: </strong> {{ message.date[:-6] }}</p>
+                <p><strong>Date: </strong> {{ message.date.strftime('%Y-%m-%d %H:%M:%S') }}</p>
                 <div class="message-content">
                     <div>{{ message.html|safe }}</div>
                 </div>
