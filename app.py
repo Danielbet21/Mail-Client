@@ -70,7 +70,7 @@ def user(is_done = False):
     if not is_done:
         data_base.update_db(session['email'])
     
-    messages = shared_resources.get_messages_inbox()
+    messages = shared_resources.get_messages_inbox() #TODO: get rid of this and put "by_label" instead
     messages = data_base.purify_message(messages)
     return render_template("user.html", messages=messages, labels=gmail.list_labels(), get_name=shared_resources.get_email_sender_name, title="Inbox")
 

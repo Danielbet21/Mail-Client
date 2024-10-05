@@ -111,7 +111,8 @@ def update_db(email) -> None:
                                 for label in msg["label_ids"]:
                                     if categories.get(label):
                                         category_handler(msg, label, email)
-
+    else:
+        logging.info("\n\n update_db: No new messages compare to current_latest_message \n ==================== \n")
 
 def category_handler(message, label, email)-> None:
     db = shared_resources.client["Deft"]
@@ -242,4 +243,15 @@ def get_all_messages_erlier_than_latest_message(message_collection) -> list:
         todays_date = Constent.get_today_date()
         messages  = message_collection.find({"date":{"$gte": todays_date}, "label_ids":{"$ne": "TRASH"}}).sort("date", -1)   
         messages = list(messages)
+        messages = remove_duplicates_from_list(messages)
         return messages
+    
+def remove_duplicates_from_list(messages)-> list:
+    seen = list()
+    unique_messages = []
+    for message in messages:
+        if message["id"] not in seen:
+            seen.append(message["id"])
+            unique_messages.append(message)
+    
+    return unique_messages
