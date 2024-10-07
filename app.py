@@ -133,7 +133,10 @@ def get_messages_by_label(wanted_label):
     #drops the initial "category_"
     if wanted_label[:9] == "CATEGORY_":
         wanted_label = wanted_label[9:].lower().capitalize()
-     
+    
+    if wanted_label == "TRASH":
+        return render_template("trash.html", messages=messages, labels=gmail.list_labels(), get_name=shared_resources.get_email_sender_name, title="TRASH")
+    
     return render_template("user.html", messages=messages, labels=gmail.list_labels(), get_name=shared_resources.get_email_sender_name, title=wanted_label)
 
 
@@ -238,8 +241,9 @@ def move_to_garbage():
     data_base.insert_id_to_Users_by_label(email, "TRASH", msg.id)
     data_base.delete_from_collection("Messages", msg.id)
     data_base.insert_one_document_to_collection("Messages", msg)
+    data_base.insert_label_to_message(email, "TRASH", msg.id, db)
     msg.trash()
-
+    
     return redirect(url_for("get_brief_of_today"))
 
 

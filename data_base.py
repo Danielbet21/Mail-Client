@@ -112,7 +112,7 @@ def update_db(email) -> None:
                                     if categories.get(label):
                                         category_handler(msg, label, email)
     else:
-        logging.info("\n\n update_db: No new messages compare to current_latest_message \n ==================== \n")
+        logging.info("\n\n update_db: Nothing happaned here \n ==================== \n")
 
 def category_handler(message, label, email)-> None:
     db = shared_resources.client["Deft"]
@@ -255,3 +255,7 @@ def remove_duplicates_from_list(messages)-> list:
             unique_messages.append(message)
     
     return unique_messages
+
+def insert_label_to_message(email, label, message_id, db) -> None:
+    db["Messages"].update_one({"email": email, "id": message_id},{"$push": {"label_ids": label}})
+    logging.info(f"\n\ninsert_label_to_message: {label} was added to message {message_id} for user {email} ==================== \n\n")
