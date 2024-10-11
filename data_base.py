@@ -12,14 +12,57 @@ from simplegmail.query import construct_query
 import logging
 import sqlite_file
 from datetime import datetime, timezone
+import time 
 from dateutil import parser
 logging.basicConfig(level=logging.INFO)
 gmail = Gmail()
 
 categories = {"CATEGORY_SOCIAL": "CATEGORY_SOCIAL","CATEGORY_PROMOTIONS": "CATEGORY_PROMOTIONS","CATEGORY_UPDATES": "CATEGORY_UPDATES","CATEGORY_FORUMS": "CATEGORY_FORUMS","CATEGORY_PERSONAL": "CATEGORY_PERSONAL","CATEGORY_PRIMARY": "CATEGORY_PRIMARY"}
 
+def update_db(email) -> None:
+    logging.info(f"\n\nupdate_db -- START \n\n")
 
+    """
+    Get the messages from the user gmail account and check if there's a message that dosent exist in the collection
+    by checking the id & labels of the message
+    """
+    db = shared_resources.client["Deft"]
+    users_collection = db["Users"]
+    message_collection = db["Messages"]
 
+    current_latest_message_dict = users_collection.find_one({"email": email}, {"latest_message": 1})
+    current_latest_message = current_latest_message_dict.get("latest_message")
+    current_latest_message = current_latest_message.replace(tzinfo=timezone.utc)
+    latest_message_date = None
+    labels = gmail.list_labels()
+    if Constent.there_is_messages_after_latest_message_from_gmail(gmail, users_collection, current_latest_message):
+        for label in labels:
+            logging.info(f"\n\nupdate_db -- gmail query START: {time.ctime()}\n\n")
+            messages = gmail.get_messages(query=f"label: {label.name}")
+            logging.info(f"\n\nupdate_db -- gmail quary END: {time.ctime()} \n\n")
+
+            if messages:
+                latest_message_date = Constent.convert_date_to_utc(messages[0].date)
+                has_newer = update_and_check_latest_message(email, latest_message_date)
+                if has_newer:
+                    for msg in messages:   
+                        found =  message_collection.count_documents({"id": msg.id, "label_ids": labels_to_list(msg.label_ids)})
+                        if not found:
+                            found_with_other_labels = message_collection.find_one({"id": msg.id})
+                            if found_with_other_labels:
+                                message_collection.delete_one({"id": msg.id})   
+                           
+                            msg.date = Constent.convert_date_to_utc(msg.date)
+                            msg = purify_message(msg)
+                            message_collection.insert_one(msg)
+                            
+                            if (not found_with_other_labels) and ( "TRASH" not in msg["label_ids"]):
+                                x = msg["subject"]
+                                for label in msg["label_ids"]:
+                                    if categories.get(label):
+                                        category_handler(msg, label, email)
+    logging.info(f"\n\nupdate_db -- END: {time.ctime()} \n\n")       
+                                        
 def init_db(email) -> None:
     """
     Init the database with the user email data for the first time
@@ -32,11 +75,11 @@ def init_db(email) -> None:
     for label in labels:
         messages = gmail.get_messages(query=f"label:{label.name}")
         if messages:
-            latest_message_date = convert_date_to_utc(messages[0].date)
+            latest_message_date = Constent.convert_date_to_utc(messages[0].date)
             label_message_ids = [] 
             
             for msg in messages:
-                msg.date = convert_date_to_utc(msg.date)
+                msg.date = Constent.convert_date_to_utc(msg.date)
                 if message_collection.count_documents({"id": msg.id}) == 0:
                     purified_message = purify_message(msg)
                     message_collection.insert_one(purified_message)
@@ -72,47 +115,6 @@ def make_db(email) -> None:
         label_lists = {label.name: [] for label in labels}
         users_collection.insert_one({"email": email, "name": email_name_of_user, **label_lists, "latest_message": datetime(1970, 1, 1, tzinfo=timezone.utc)})
 
-
-def update_db(email) -> None:
-    """
-    Get the messages from the user gmail account and check if there's a message that dosent exist in the collection
-    by checking the id & labels of the message
-    """
-    db = shared_resources.client["Deft"]
-    users_collection = db["Users"]
-    message_collection = db["Messages"]
-
-    current_latest_message_dict = users_collection.find_one({"email": email}, {"latest_message": 1})
-    current_latest_message = current_latest_message_dict.get("latest_message")
-    current_latest_message = current_latest_message.replace(tzinfo=timezone.utc)
-    latest_message_date = None
-    labels = gmail.list_labels()
-    
-    if Constent.there_is_messages_after_latest_message_from_gmail(gmail, users_collection, current_latest_message):
-        for label in labels:
-            messages = gmail.get_messages(query=f"label: {label.name}")
-            if messages:
-                latest_message_date = convert_date_to_utc(messages[0].date)
-                has_newer = update_and_check_latest_message(email, latest_message_date)
-                if has_newer:
-                    for msg in messages:   
-                        found =  message_collection.count_documents({"id": msg.id, "label_ids": labels_to_list(msg.label_ids)})
-                        if not found:
-                            found_with_other_labels = message_collection.find_one({"id": msg.id})
-                            if found_with_other_labels:
-                                message_collection.delete_one({"id": msg.id})   
-                            
-                            msg = purify_message(msg)
-                            msg["date"] = convert_date_to_utc(msg["date"])
-                            message_collection.insert_one(msg)
-                            
-                            if (not found_with_other_labels) and( "TRASH" not in msg["label_ids"]):
-                                x = msg["subject"]
-                                for label in msg["label_ids"]:
-                                    if categories.get(label):
-                                        category_handler(msg, label, email)
-    else:
-        logging.info("\n\n update_db: Nothing happaned here \n ==================== \n")
 
 def category_handler(message, label, email)-> None:
     db = shared_resources.client["Deft"]
@@ -151,7 +153,7 @@ def purify_message(messages) -> list[dict]:
     def process_message(message):
         message_dict = message.__dict__
         message_dict = Constent.filter_fields(message_dict, labels_to_list)
-        message_dict['date'] = convert_date_to_utc(message_dict['date'])
+        message_dict['date'] = Constent.convert_date_to_utc(message_dict['date'])
         return message_dict
 
     if isinstance(messages, list):
@@ -227,17 +229,6 @@ def get_all_ids_for_user(email)-> list:
 
     return user["all_ids"]
 
-
-def convert_date_to_utc(date_input)-> datetime:
-    if isinstance(date_input, datetime):
-        return date_input
-    else:
-        date = parser.isoparse(date_input)    
-        if date.tzinfo is None:
-            date = date.replace(tzinfo=timezone.utc)
-        else:
-            date = date.astimezone(timezone.utc)    
-        return date
 
 def get_all_messages_erlier_than_latest_message(message_collection) -> list:
         todays_date = Constent.get_today_date()

@@ -1,7 +1,7 @@
 import shared_resources
 import pytz
 from dateutil import parser
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 class Constent():
     fields = ["sender", 
@@ -79,8 +79,22 @@ class Constent():
 
 
     @staticmethod
-    def there_is_messages_after_latest_message_from_gmail(gmail, users_collectionn, lastest_message_date) -> bool:
-        messages = gmail.get_messages(query=f"after: {lastest_message_date}")
-        if messages:
+    def there_is_messages_after_latest_message_from_gmail(gmail, users_collectionn, latest_message_date) -> bool:
+        latest_message_date_ = latest_message_date.strftime("%Y/%m/%d")
+        messages = gmail.get_messages(query=f"after: {latest_message_date_}")
+        if messages and Constent.convert_date_to_utc(messages[0].date) > latest_message_date:
             return True
         return False
+    
+    
+    @staticmethod
+    def convert_date_to_utc(date_input)-> datetime:
+        if isinstance(date_input, datetime):
+            return date_input
+        else:
+            date = parser.isoparse(date_input)    
+            if date.tzinfo is None:
+                date = date.replace(tzinfo=timezone.utc)
+            else:
+                date = date.astimezone(timezone.utc)    
+            return date
