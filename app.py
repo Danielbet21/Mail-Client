@@ -127,7 +127,7 @@ def get_messages_by_label(wanted_label):
     wanted_label_messages_ids = user_document.get(wanted_label, [])
     wanted_label_messages_ids = list(set(wanted_label_messages_ids))
     
-    messages = list(message_collection.find({"id": {"$in": wanted_label_messages_ids}})) 
+    messages = list(message_collection.find({"id": {"$in": wanted_label_messages_ids}}).sort("date", -1)) 
     logging.info(f"messages: {len(messages)} \n =============== \n\n")
    
     #drops the initial "category_"
@@ -148,6 +148,7 @@ def show_message_info(message_id, labels):
     subject = message['subject']
     date = message['date']
     if "UNREAD" in label_names:
+        data_base.make_as_read(session['email'], "UNREAD", message_id, shared_resources.client["Deft"])
         thread = threading.Thread(target=Constent.mark_gmail_message_as_read, args=(message_id,date,subject))
         thread.start()
     else:
@@ -231,17 +232,11 @@ def move_to_garbage():
         the user want to delete a message that is already in the trash=>need to delete it from the db and the gmail account.
         #TODO: delete the message from gmail permenatly
         """
-        data_base.pull_id_from_users_by_label(email, "TRASH", message_id)
-        data_base.delete_from_collection("Messages", message_id)
+        data_base.pull_id_from_users_by_label(email, "TRASH", message_id, db)
+        data_base.delete_from_collection("Messages", message_id, db)
         return redirect(url_for("get_messages_by_label", wanted_label="TRASH"))
 
-    for label in msg.label_ids:
-      data_base.pull_id_from_users_by_label(email, label.name, msg.id)
-        
-    data_base.insert_id_to_Users_by_label(email, "TRASH", msg.id)
-    data_base.delete_from_collection("Messages", msg.id)
-    data_base.insert_one_document_to_collection("Messages", msg)
-    data_base.insert_label_to_message(email, "TRASH", msg.id, db)
+    data_base.call_all_logic_for_msg_delete(email, msg, db)
     msg.trash()
     
     return redirect(url_for("get_brief_of_today"))

@@ -175,7 +175,7 @@ def fetch_message_and_message_labels(message_id, labels) -> dict:
     return message, label_names
 
 
-def update_messages_after_action(message, message_id)-> None:
+def update_messages_after_action(message, message_id)-> None: #TODO: not in use
     db = shared_resources.client["Deft"]
     message_collection = db["Messages"]
     
@@ -187,32 +187,28 @@ def update_messages_after_action(message, message_id)-> None:
 
 def make_as_read(email,desired_label,desired_message_id,db) -> None:
         db["Users"].update_one({"email":email}, {"$pull": {"UNREAD": desired_message_id}})
-        db["Users"].update_one({"email":email}, {"$push": {desired_label: desired_message_id}})
+        db["Messages"].update_one({"id": desired_message_id}, {"$pull": {"label_ids": desired_label}})
         
-
+        
 def find_user(email)-> int:
     db = shared_resources.client["Deft"]
     user_count = db["Users"].count_documents({"email": email})
     return user_count
 
 
-def pull_id_from_users_by_label(email, label, message_id)-> None:
-    db = shared_resources.client["Deft"]
+def pull_id_from_users_by_label(email, label, message_id, db)-> None:
     db["Users"].update_one({"email": email}, {"$pull": {label: message_id}})
     
     
-def insert_id_to_Users_by_label(email, label, message_id)-> None:
-    db = shared_resources.client["Deft"]
+def insert_id_to_Users_by_label(email, label, message_id, db)-> None:
     db["Users"].update_one({"email": email}, {"$push": {label: message_id}})
     
     
-def delete_from_collection(collection_name, message_id)-> None:
-    db = shared_resources.client["Deft"]
+def delete_from_collection(collection_name, message_id, db)-> None:
     db[collection_name].delete_one({"id": message_id})
 
 
-def insert_one_document_to_collection(collection_name, message)-> None:
-    db = shared_resources.client["Deft"]
+def insert_one_document_to_collection(collection_name, message, db)-> None:
     message = purify_message(message)
     db[collection_name].insert_one(message)
     
@@ -223,7 +219,7 @@ def insert_many_documents_to_collection(collection_name, messages)-> None:
     db[collection_name].insert_many(messages)
     
 
-def get_all_ids_for_user(email)-> list:
+def get_all_ids_for_user(email)-> list: #TODO: not in use
     db = shared_resources.client["Deft"]
     user = db["Users"].find_one({"email": email})
 
@@ -247,6 +243,17 @@ def remove_duplicates_from_list(messages)-> list:
     
     return unique_messages
 
-def insert_label_to_message(email, label, message_id, db) -> None:
-    db["Messages"].update_one({"email": email, "id": message_id},{"$push": {"label_ids": label}})
-    logging.info(f"\n\ninsert_label_to_message: {label} was added to message {message_id} for user {email} ==================== \n\n")
+def insert_label_to_message(email, label, message_id, recipient, db) -> None:
+    res = db["Messages"].update_one({"recipient":recipient, "id": message_id}, {"$addToSet": {"label_ids": label}}, upsert=False)
+    logging.info(f"\n========\nres: {res}\n=============\ninsert_label_to_message: {label} was added to message {message_id} for recipient {recipient} ==================== \n\n")
+    
+    
+def call_all_logic_for_msg_delete(email, msg, db) -> None:
+    for label in msg.label_ids:
+      pull_id_from_users_by_label(email, label.name, msg.id, db)
+
+    insert_id_to_Users_by_label(email, "TRASH", msg.id, db)
+    # insert_one_document_to_collection("Messages", msg, db)
+    logging.info(f"\n======\n")
+    insert_label_to_message(email, "TRASH", msg.id, msg.recipient ,db)
+    # delete_from_collection("Messages", msg.id, db)

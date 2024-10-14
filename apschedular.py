@@ -12,6 +12,7 @@ import data_base
 class SchedulerManager:
     @staticmethod
     def check_emails(gmail, user_email):
+        db = shared_resources.client["Deft"]
         messages = gmail.get_unread_inbox()
         if messages:
             data_base.insert_many_documents_to_collection("Messages", messages)
@@ -19,7 +20,7 @@ class SchedulerManager:
             for message in messages:
                 for id_num, labels in message.items():
                     for label in labels:
-                            data_base.insert_id_to_Users_by_label(user_email, label, id_num)
+                            data_base.insert_id_to_Users_by_label(user_email, label, id_num, db)
 
 
     @staticmethod

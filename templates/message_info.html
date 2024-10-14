@@ -3,21 +3,31 @@
 {% block title %} Deft.B | {{ title }}{% endblock %}
 {% block head %}
     {{ super() }}
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        .message-content img {
-            max-width: 100%;
-            max-height: 100%;  /* adjust as needed */
-            height: auto;
-        }
         .container {
-            direction: ltr;
+            width: 100%;
+            max-width: 800px; /* Adjust this value as needed */
+            padding: 0 15px;
+            box-sizing: border-box;
+        }
+        .email-wrapper {
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        .message-content {
+            max-width: 100% !important;
+            overflow-x: auto !important;
+        }
+        .message-text {
+            width: 100%;
+            overflow-wrap: break-word;
         }
         .attachment {
             display: flex;
             align-items: center;
             margin-bottom: 10px;
         }
-
         .icon {
             padding: 10px 20px;  
             border-radius: 25px;  
@@ -32,8 +42,10 @@
             font-size: 14px;
             margin-left: 10px;
         }
-        body {
-            padding-bottom: 70px; 
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 10px;
+            }
         }
     </style>
 {% endblock %}
@@ -45,10 +57,18 @@
                 <p><strong>Subject: </strong> {{ message.subject }}</p>
                 <p><strong>Sender: </strong> {{ message.sender }}</p>
                 <p><strong>Date: </strong> {{ message.date.strftime('%Y-%m-%d %H:%M:%S') }}</p>
-                <div class="message-content">
-                    <div>{{ message.html|safe }}</div>
+                <hr>
+
+                <div class="email-wrapper">
+                    {{ message.html|safe }}
                 </div>
-                <p>{{ message.text }}</p>
+                
+                {% if message.text %}
+                    <div class="message-text">
+                        {{ message.text }}
+                    </div>
+                {% endif %}
+
                 {% if attachments %}
                     <div class="attachments">
                         {% for attachment in attachments %}
@@ -59,7 +79,7 @@
                                 </a>
                             </div>
                         {% endfor %}
-                        </div>
+                    </div>
                 {% endif %}
             </div>
         </div>
