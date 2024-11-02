@@ -5,8 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/daily_summary.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/sub-nav.css') }}">
     <style>
          .navbar {
             background-color: #ffffff;
@@ -155,24 +158,24 @@
         </a>
         <ul class="nav-list">
             <li class="nav-item">
-                <a class="nav-link" href="/api/v1/gmail/user/">Inbox</a>
+                <a class="nav-link" href="/api/v1/gmail/user/"><i class="bi bi-envelope-fill" style="font-size: 24px;"></i></a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="/api/v1/gmail/messages/send"><i class="fas fa-light fa-pencil-alt"></i></a>
+                <a class="nav-link" href="/api/v1/gmail/messages/send"><i class="fas fa-light fa-pencil-alt" style="font-size: 24px;"></i></a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="/api/v1/gmail/messages/by_label/TRASH"><i class="fas fa-trash-alt"></i></a>
+                <a class="nav-link" href="/api/v1/gmail/messages/by_label/TRASH">Trash</i></a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="/api/v1/gmail/messages/by_label/UNREAD">Unread</a>
             </li>
             <li class="nav-item dropdown">
                 <a href="#" class="nav-link dropdown-toggle" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    Dropdown
+                    <i class="bi bi-menu-down" style="font-size: 24px;"></i>
                 </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                         {% for label in labels %}
-                                <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/{{ label.name }}">{{ label.name }}</a>
+                                <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/{{ label.name }}" style="font-size: 14px; ">{{ label.name }}</a>
                         {% endfor %}
                     </div>
                 </li>
@@ -190,31 +193,40 @@
             </div>    
         </div>
     </nav>
+    <div id="app">
+        <div class="sub-nav">
+            <toolbar></toolbar>
+            <daily_summary></daily_summary>
+        </div>
+    </div>
+    
     <p>{% block content %}{% endblock %}</p>
-        <!-- Script tags -->
-        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
-        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
-        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js"
-                integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
-                crossorigin="anonymous"></script>
-        <script>
-            function submitForm() {
-                var startDate = document.getElementById('start-date').value;
-                var endDate = document.getElementById('end-date').value;
+    <!-- Script tags -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js"
+            integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+            crossorigin="anonymous"></script>
+    <script>
+        function submitForm() {
+            var startDate = document.getElementById('start-date').value;
+            var endDate = document.getElementById('end-date').value;
 
-                if (startDate && endDate || endDate && !startDate) {
-                    var url = `/api/v1/gmail/messages/${startDate}/${endDate}`;
-                    
-                    // Redirect to the constructed URL
-                    window.location.href = url;
-                    return false; // Prevent the form from submitting the default way
-                } else {
-                    alert('Please select both start and end dates\nor at least the end date.');
-                    return false;
-                }
+            if (startDate && endDate || endDate && !startDate) {
+                var url = `/api/v1/gmail/messages/${startDate}/${endDate}`;
+                
+                // Redirect to the constructed URL
+                window.location.href = url;
+                return false; // Prevent the form from submitting the default way
+            } else {
+                alert('Please select both start and end dates\nor at least the end date.');
+                return false;
             }
-        </script>
-    </body>
+        }
+    </script>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="{{ url_for('static', filename='scripts.js') }}"></script>
+</body>
 </html>

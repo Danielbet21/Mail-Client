@@ -4,8 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/sub-nav.css') }}">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='styles/daily_summary.css') }}"> -->
+
     <style>
          .navbar {
             background-color: #ffffff;
@@ -50,16 +54,22 @@
         }
 
         .nav-list li a { 
-            display: block;
+            /* display: block;
             color: rgb(0, 0, 0);
             text-align: center;
             padding: 14px 20px;
             text-decoration: none;
+            font-size: 17px; */
+            color:  rgb(0, 0, 0);
+            border: none;
+            box-shadow: none;
+            border-bottom: 4px solid #fffefe;
+            cursor: pointer;
         }
 
         .nav-list li a:hover {
             color:#085;
-            font-style: italic;
+            border-color: #085;
         }
         .nav-list li a:active {
             color: #085; 
@@ -91,7 +101,6 @@
             margin-left: 20px;
             padding: 10px 0;
             padding: 20px;
-
             background-color: #ffffff;
             flex-direction: row;
             gap: 1px;
@@ -121,7 +130,6 @@
         }
         .message-date {
             flex: 1;
-            text-align: right;
             margin-right: 20px;
         }
         .no_mail {
@@ -137,6 +145,13 @@
             align-items: center;
             height: 60vh;
         }
+        #customButton{
+            outline: none;
+            border: none;
+            background-color: #ffffff;
+            margin-right: 10px;
+           }
+
         body {
             margin: 0;
             font-family: sans-serif;
@@ -152,24 +167,24 @@
         </a>
         <ul class="nav-list">
             <li class="nav-item">
-                <a class="nav-link" href="/api/v1/gmail/user/">Inbox</a>
+                <a class="nav-link" href="/api/v1/gmail/user/"><i class="bi bi-envelope-fill" style="font-size: 20px;"></i></a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="/api/v1/gmail/messages/send"><i class="fas fa-light fa-pencil-alt"></i></a>
+                <a class="nav-link" href="/api/v1/gmail/messages/send"><i class="fas fa-light fa-pencil-alt" style="font-size: 20px;"></i></a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="/api/v1/gmail/messages/by_label/TRASH"><i class="fas fa-trash-alt"></i></a>
+                <a class="nav-link" href="/api/v1/gmail/messages/by_label/TRASH">Trash</i></a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="/api/v1/gmail/messages/by_label/UNREAD">Unread</a>
             </li>
             <li class="nav-item dropdown">
                 <a href="#" class="nav-link dropdown-toggle" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    Dropdown
+                    <i class="bi bi-menu-down" style="font-size: 22px;"></i>
                 </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                         {% for label in labels %}
-                                <a class="dropdown-item" href="/api/v1/gmail/messages/by_label/{{ label.name }}">{{ label.name }}</a>
+                                <a class="dropdown-item label-link" href="/api/v1/gmail/messages/by_label/{{ label.name }}" style="font-size: 14px; ">{{ label.name }}</a>
                         {% endfor %}
                     </div>
                 </li>
@@ -187,123 +202,144 @@
             </div>    
         </div>
     </nav>
-
-    <!-- Body content from user.html -->
-    <p>{% block content %}
+    <!--    
+    |
+    |
+    |
+    |
+    |
+    |
+    |
+    -->
+    <div id="app">
+        <div class="sub-nav">
+            <toolbar></toolbar>
+            <daily_summary></daily_summary>
+        </div>
+    </div>
+    <!--    
+    |
+    |/
+    |
+    |
+    |
+    |
+    |
+    -->
+<!-- Body content from user.html -->
+{% block content %}
     {% if not messages %}
-    <div class="no_mail">
-        <p>The World Is Not In Your Empty Mailbox. <br> It's Out There.</p>
-    </div>
-    <div class="no_mail_img style="display: flex; justify-content: center; align-items: center; height: 80vh;">
-        <img src="\static\images\empty_gandalf.png"
-         alt="No messages">
-    </div>
+        <div class="no_mail">
+            <p>The World Is Not In Your Empty Mailbox. <br> It's Out There.</p>
+        </div>
+        <div class="no_mail_img" style="display: flex; justify-content: center; align-items: center; height: 80vh;">
+            <img src="\static\images\empty_gandalf.png" alt="No messages">
+        </div>
     {% else %}
-    <div id="message-row">
-    {% for msg in messages %}
-        {% if "UNREAD" in msg.label_ids %}
-
-        <div class="message-row">
-            <div class="message-sender-subject">
-                <p><strong><a href="{{ url_for('get_messages_by_source', sender_email = msg.sender) }}">{{ get_name(msg.sender) }}</a></strong></p>
-                <p><strong><a href="{{ url_for('show_message_info', message_id=msg.id, labels=msg.label_ids) }}">{{ msg.subject }}</a></strong></p>
-            </div>
-            <div class="message-snippet">
-                {% if msg.snippet|length <= 30 %}
-                    <p><strong>{{ msg.snippet }}</strong></p>
-                {% else %}
-                    <p><strong>{{ msg.snippet[:30] }}...</strong></p>
-                {% endif %}
-            </div>
-            <div class="message-date">
-                <p><strong>{{ msg.date.strftime('%Y-%m-%d %H:%M:%S') }}</strong></p>
-            </div>
-            {% if attachments %}
-            <div class="attachments">
-                {% for attachment in attachments %}
-                    <div class="attachment">
-                        <a href="{{ url_for('download_attachment', message_id=attachment['message_id'], filename=attachment['filename']) }}" target="_blank">
-                            <div class="icon">{{ attachment['filename'].split('.')[-1].upper() }}</div>
-                            <div class="filename">{{ attachment['filename'] }}</div>
-                        </a>
+        {% for msg in messages %}
+            {% if "UNREAD" in msg.label_ids %}
+                <div class="message-row">
+                    <button type="button" id="customButton"> <i class="bi bi-square"></i></button>
+                    <div class="message-sender-subject">
+                        <p><strong><a href="{{ url_for('get_messages_by_source', sender_email=msg.sender) }}">{{ get_name(msg.sender) }}</a></strong></p>
+                        <p><strong><a href="{{ url_for('show_message_info', message_id=msg.id, labels=msg.label_ids) }}">{{ msg.subject }}</a></strong></p>
                     </div>
-                {% endfor %}
+                    <div class="message-snippet">
+                        {% if msg.snippet|length <= 30 %}
+                            <p><strong>{{ msg.snippet }}</strong></p>
+                        {% else %}
+                            <p><strong>{{ msg.snippet[:30] }}...</strong></p>
+                        {% endif %}
+                    </div>
+                    <div class="message-date">
+                        <p><strong>{{ msg.date.strftime('%Y-%m-%d %H:%M:%S') }}</strong></p>
+                    </div>
+                    <!-- Dropdown menu -->
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-outline-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Labels
+                        </button>
+                        <div class="dropdown-menu">
+                            <!-- Loop through labels and create a dropdown item for each one -->
+                            {% for label in labels %}
+                                <form action="{{ url_for('add_label_to_message') }}" method="post">
+                                    <input type="hidden" name="message_id" value="{{ msg.id }}">
+                                    <input type="hidden" name="wanted_label" value="{{ label.name }}">
+                                    <input type="hidden" name="date" value="{{ msg.date }}">
+                                    <input type="hidden" name="subject" value="{{ msg.subject }}">
+                                    <button type="submit" class="btn btn-outline-primary dropdown-item">{{ label.name }}</button>
+                                </form>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <!-- "Delete" button -->
+                    <div class="btn-group" style="margin-left: 20px;">
+                        <form method="POST" action="/api/v1/gmail/messages/move_to_garbage">
+                            <input type="hidden" name="message_id" value="{{ msg.id }}">
+                            <button type="submit" class="btn btn-outline-danger">Delete</button>
+                        </form>
+                    </div>
+                </div>
+            {% else %}
+                <div class="message-row">
+                    <button type="button" id="customButton"> <i class="bi bi-square"></i></button>
+                    <div class="message-sender-subject">
+                        <p><a href="{{ url_for('get_messages_by_source', sender_email=msg.sender) }}">{{ get_name(msg.sender) }}</a></p>
+                        <p><a href="{{ url_for('show_message_info', message_id=msg.id, labels=msg.label_ids) }}">{{ msg.subject }}</a></p>
+                    </div>
+                    <div class="message-snippet">
+                        {% if msg.snippet|length <= 30 %}
+                            <p>{{ msg.snippet }}</p>
+                        {% else %}
+                            <p>{{ msg.snippet[:30] }}...</p>
+                        {% endif %}
+                    </div>
+                    <div class="message-date">
+                        <p>{{ msg.date.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                    </div>
+                    <!-- Dropdown menu -->
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-outline-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Labels
+                        </button>
+                        <div class="dropdown-menu">
+                            <!-- Loop through labels and create a dropdown item for each one -->
+                            {% for label in labels %}
+                                <form action="{{ url_for('add_label_to_message') }}" method="post">
+                                    <input type="hidden" name="message_id" value="{{ msg.id }}">
+                                    <input type="hidden" name="wanted_label" value="{{ label.name }}">
+                                    <input type="hidden" name="date" value="{{ msg.date }}">
+                                    <input type="hidden" name="subject" value="{{ msg.subject }}">
+                                    <button type="submit" class="btn btn-outline-primary dropdown-item">{{ label.name }}</button>
+                                </form>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <!-- "Delete" button -->
+                    <div class="btn-group" style="margin-left: 20px;">
+                        <form method="POST" action="/api/v1/gmail/messages/move_to_garbage">
+                            <input type="hidden" name="message_id" value="{{ msg.id }}">
+                            <button type="submit" class="btn btn-outline-danger">Delete</button>
+                        </form>
+                    </div>
                 </div>
             {% endif %}
-            <!-- Dropdown menu -->
-            <div class="btn-group" style="margin-left: 20px;">
-                <button type="button" class="btn btn-outline-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    Labels
-                </button>
-                <div class="dropdown-menu">
-                    <!-- Loop through labels and create a dropdown item for each one -->
-                    {% for label in labels %}
-                    <form action="{{ url_for('add_label_to_message') }}" method="post">
-                        <input type="hidden" name="message_id" value="{{ msg.id }}">
-                        <input type="hidden" name="wanted_label" value="{{ label.name }}">
-                        <input type="hidden" name="date" value="{{ msg.date }}">
-                        <input type="hidden" name="subject" value="{{ msg.subject }}">
-                        <button type="submit" class="btn btn-outline-primary dropdown-item">{{ label.name }}</button>
-                    </form>
+            {% if attachments %}
+                <div class="attachments">
+                    {% for attachment in attachments %}
+                        <div class="attachment">
+                            <a href="{{ url_for('download_attachment', message_id=attachment['message_id'], filename=attachment['filename']) }}" target="_blank">
+                                <div class="icon">{{ attachment['filename'].split('.')[-1].upper() }}</div>
+                                <div class="filename">{{ attachment['filename'] }}</div>
+                            </a>
+                        </div>
                     {% endfor %}
                 </div>
-            </div>
-            <!--"Delete" button -->
-            <div class="btn-group" style="margin-left: 20px;">
-                <form method="POST" action="/api/v1/gmail/messages/move_to_garbage">
-                    <input type="hidden" name="message_id" value="{{ msg.id }}">
-                    <button type="submit" class="btn btn-outline-danger">Delete</button>
-                </form>
-        <hr style="margin-left: 20px;">
-        </div>
-        </div>
-        {% else %}
-        <div class="message-row">
-            <div class="message-sender-subject">
-                <p><a href="{{ url_for('get_messages_by_source', sender_email= msg.sender) }}">{{ get_name(msg.sender) }}</a></p>
-                <p><a href="{{ url_for('show_message_info', message_id=msg.id, labels=msg.label_ids) }}">{{ msg.subject }}</a></p>
-            </div>
-            <div class="message-snippet">
-                {% if msg.snippet|length <= 30 %}
-                    <p>{{ msg.snippet }}</p>
-                {% else %}
-                    <p>{{ msg.snippet[:30] }}...</p>
-                {% endif %}
-            </div>
-            <div class="message-date">
-                <p>{{ msg.date.strftime('%Y-%m-%d %H:%M:%S') }}</p>
-            </div>
-            <!-- Dropdown menu -->
-            <div class="btn-group" style="margin-left: 20px;">
-                <button type="button" class="btn btn-outline-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    Labels
-                </button>
-                <div class="dropdown-menu">
-                    <!-- Loop through labels and create a dropdown item for each one -->
-                    {% for label in labels %}
-                    <form action="{{ url_for('add_label_to_message') }}" method="post">
-                        <input type="hidden" name="message_id" value="{{ msg.id }}">
-                        <input type="hidden" name="wanted_label" value="{{ label.name }}">
-                        <input type="hidden" name="date" value="{{ msg.date }}">
-                        <input type="hidden" name="subject" value="{{ msg.subject }}">
-                        <button type="submit" class="btn btn-outline-primary dropdown-item">{{ label.name }}</button>
-                    </form>
-                    {% endfor %}
-                </div>
-            </div>
-            <!--"Delete" button -->
-            <div class="btn-group" style="margin-left: 20px;">
-                <form method="POST" action="/api/v1/gmail/messages/move_to_garbage">
-                    <input type="hidden" name="message_id" value="{{ msg.id }}">
-                    <button type="submit" class="btn btn-outline-danger">Delete</button>
-                </form>
-        </div>
-        </div>
-        {% endif %}
-    {% endfor %}
-    </div>
+            {% endif %}
+        {% endfor %}
     {% endif %}
-    {% endblock %}</p>
+{% endblock %}
+
     <!-- Script tags -->
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
@@ -388,5 +424,7 @@
         fetchAndUpdateMessages();
     });
 </script>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="{{ url_for('static', filename='scripts.js') }}"></script>
     </body>
 </html>

@@ -251,7 +251,7 @@ def add_label_to_message():
         msg = shared_resources.get_message_by_id_from_gmail(desired_message_id,date,subject) 
         
         email = session['email']
-        db = shared_resources.client["Deft"]   
+        db = shared_resources.client["Deft"]    
         
         if desired_label == "TRASH":
             if msg: 
