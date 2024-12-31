@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %} Deft.B | {{ title }}{% endblock %}
+{% block head %}
+    {{ super() }}
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        .container {
+            width: 100%;
+            max-width: 800px; /* Adjust this value as needed */
+            padding: 0 15px;
+            box-sizing: border-box;
+        }
+        .email-wrapper {
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        .message-content {
+            max-width: 100% !important;
+            overflow-x: auto !important;
+        }
+        .message-text {
+            width: 100%;
+            overflow-wrap: break-word;
+        }
+        .attachment {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .icon {
+            padding: 10px 20px;  
+            border-radius: 25px;  
+            background-color: #085;
+            color: #fff;
+            display: inline-block;
+            font-weight: bold;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .filename {
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 10px;
+            }
+        }
+    </style>
+{% endblock %}
+{% block content %}
+    <div class="container">
+        <br>
+        <div class="row">
+            <div class="col-md-12">
+                <p><strong>Subject: </strong> {{ message.subject }}</p>
+                <p><strong>Sender: </strong> {{ message.sender }}</p>
+                <p><strong>Date: </strong> {{ message.date.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                <hr>
+
+                <div class="email-wrapper">
+                    {{ message.html|safe }}
+                </div>
+                
+                {% if message.text %}
+                    <div class="message-text">
+                        {{ message.text }}
+                    </div>
+                {% endif %}
+
+                {% if attachments %}
+                    <div class="attachments">
+                        {% for attachment in attachments %}
+                            <div class="attachment">
+                                <a href="{{ url_for('download_attachment', message_id=attachment['message_id'], filename=attachment['filename']) }}" target="_blank">
+                                    <div class="icon">{{ attachment['filename'].split('.')[-1].upper() }}</div>
+                                    <div class="filename">{{ attachment['filename'] }}</div>
+                                </a>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}
