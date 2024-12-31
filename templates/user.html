@@ -8,155 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/sub-nav.css') }}">
-    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='styles/daily_summary.css') }}"> -->
-
-    <style>
-         .navbar {
-            background-color: #ffffff;
-            overflow: visible;
-            display: flex;
-            align-items: center; 
-            border-bottom: 1.5px solid #a19f9f; 
-        }
-
-        .navbar-logo {
-            margin-right: auto; 
-            display: flex;
-            align-items: center;
-            padding: 0px;
-        }
-
-        .navbar-logo img {
-            width: 80px; 
-            height: auto;
-        }
-        .dropdown-menu {
-            position: absolute;
-            z-index: 1000; 
-            left: 0;
-            top: 100%; 
-            margin-top: 0.125rem;
-            font-size: 15px;
-        }
-
-        .nav-list {
-            list-style-type: none;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-grow: 1; 
-            justify-content: flex-start; 
-        }
-
-        .nav-list li {
-            display: inline;
-            position: relative;
-        }
-
-        .nav-list li a { 
-            /* display: block;
-            color: rgb(0, 0, 0);
-            text-align: center;
-            padding: 14px 20px;
-            text-decoration: none;
-            font-size: 17px; */
-            color:  rgb(0, 0, 0);
-            border: none;
-            box-shadow: none;
-            border-bottom: 4px solid #fffefe;
-            cursor: pointer;
-        }
-
-        .nav-list li a:hover {
-            color:#085;
-            border-color: #085;
-        }
-        .nav-list li a:active {
-            color: #085; 
-            font-weight: bolder;
-        }
-        .nav-item.dropdown:hover .dropdown-menu {
-            display: block;
-        }
-        .btn-outline-success {
-            font-family: 'sans-serif', monospace;
-        }
-        .container {
-            overflow: hidden;
-        }
-        .container img {
-            max-width: 100%;
-            height: auto;
-        }
-        .date-container{
-            font-family: 'sans-serif', monospace;
-            margin-left: 40px;
-            font-size: 15px; 
-            color: rgb(128, 132, 130); 
-        }
-        .message-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-left: 20px;
-            padding: 10px 0;
-            padding: 20px;
-            background-color: #ffffff;
-            flex-direction: row;
-            gap: 1px;
-            margin: 2px 0;
-        }
-        .message-row:hover {
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
-            border: 1px #000000;
-        }
-        .message-row .message-sender-subject {
-            width: 500px; 
-        }
-        .message-row .message-sender-subject a {
-            color: #000000;
-            text-decoration: none;
-            word-wrap: break-word; 
-            white-space: normal;   
-        }
-
-        .message-snippet {
-            display: flex;
-            flex: 1;
-            text-align: center;
-            align-items: center;
-            justify-content: center;
-            color:#a19f9f;
-        }
-        .message-date {
-            flex: 1;
-            margin-right: 20px;
-        }
-        .no_mail {
-            font-family: 'Uncial Antiqua', monospace;
-            font-size: 22px;
-            color: rgb(101, 103, 102);
-            text-align: center;
-            margin-top: 50px;
-        }
-        .no_mail_img {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 60vh;
-        }
-        #customButton{
-            outline: none;
-            border: none;
-            background-color: #ffffff;
-            margin-right: 10px;
-           }
-
-        body {
-            margin: 0;
-            font-family: sans-serif;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/user.css') }}">
+    
     <title>{% block title %}Tardigrade | {{title}}{% endblock %}</title>
 </head>
 <body> 
@@ -214,18 +67,8 @@
     <div id="app">
         <div class="sub-nav">
             <toolbar></toolbar>
-            <daily_summary></daily_summary>
+            <window-daily-summary></window-daily-summary>
         </div>
-    </div>
-    <!--    
-    |
-    |/
-    |
-    |
-    |
-    |
-    |
-    -->
 <!-- Body content from user.html -->
 {% block content %}
     {% if not messages %}
@@ -239,7 +82,9 @@
         {% for msg in messages %}
             {% if "UNREAD" in msg.label_ids %}
                 <div class="message-row">
-                    <button type="button" id="customButton"> <i class="bi bi-square"></i></button>
+                    <label class="custom-checkbox">
+                        <input type="checkbox"><span class="checkmark"></span>
+                    </label>
                     <div class="message-sender-subject">
                         <p><strong><a href="{{ url_for('get_messages_by_source', sender_email=msg.sender) }}">{{ get_name(msg.sender) }}</a></strong></p>
                         <p><strong><a href="{{ url_for('show_message_info', message_id=msg.id, labels=msg.label_ids) }}">{{ msg.subject }}</a></strong></p>
@@ -282,7 +127,9 @@
                 </div>
             {% else %}
                 <div class="message-row">
-                    <button type="button" id="customButton"> <i class="bi bi-square"></i></button>
+                    <label class="custom-checkbox">
+                        <input type="checkbox"><span class="checkmark"></span>
+                    </label>
                     <div class="message-sender-subject">
                         <p><a href="{{ url_for('get_messages_by_source', sender_email=msg.sender) }}">{{ get_name(msg.sender) }}</a></p>
                         <p><a href="{{ url_for('show_message_info', message_id=msg.id, labels=msg.label_ids) }}">{{ msg.subject }}</a></p>
@@ -339,7 +186,7 @@
         {% endfor %}
     {% endif %}
 {% endblock %}
-
+</div>
     <!-- Script tags -->
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
