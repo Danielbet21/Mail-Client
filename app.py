@@ -19,6 +19,8 @@ import pymongo
 import data_base
 import shared_resources
 import sqlite_file 
+
+
 from constent import Constent
 
 # Load environment variables
@@ -29,9 +31,9 @@ sqlite_file.init_sqlite()
 app = Flask(__name__)
 app.secret_key = "secret"
 
+
 logging.basicConfig(level=logging.INFO)
 sys.stdout.reconfigure(encoding='utf-8')
-
 gmail = Gmail()
 
 # Initialize APScheduler
@@ -77,17 +79,19 @@ def user(is_done = False):
 
 @app.route('/api/v1/gmail/messages/brief_of_today', methods=['GET'])
 def get_brief_of_today():
-        db = shared_resources.client["Deft"]
-        users_collection = db["Users"]
-        message_collection = db["Messages"]
-        
-        message = message_collection.find_one()
-        
-        messages = data_base.get_all_messages_erlier_than_latest_message(message_collection)
-        logging.info(f"\n\nFound {len(messages)} messages for today\n")
-        if not messages:
-            return redirect(url_for("user", is_done=True))
-        return render_template("user.html", messages=messages, title="Today's Brief", labels=gmail.list_labels(), get_name=shared_resources.get_email_sender_name)
+    db = shared_resources.client["Deft"]
+    users_collection = db["Users"]
+    message_collection = db["Messages"]
+    
+    message = message_collection.find_one()
+    
+    messages = data_base.get_all_messages_erlier_than_latest_message(message_collection)
+    logging.info(f"\n\nFound {len(messages)} messages for today\n")
+    
+    if not messages:
+        return redirect(url_for("user", is_done=True))
+    return render_template("user.html", messages=messages, title="Today's Brief", labels=gmail.list_labels(), get_name=shared_resources.get_email_sender_name)
+
 
 
 @app.route('/api/v1/gmail/messages/<string:str_date>/<string:end_date>', methods=['GET'])
@@ -289,8 +293,8 @@ def download_attachment(message_id, filename):
 
 if __name__ == "__main__":
     if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
-            Timer(1, lambda: webbrowser.open('http://127.0.0.1:5000')).start()
+        Timer(1, lambda: webbrowser.open('http://127.0.0.1:8080')).start()
     try:
-        app.run(debug=True)
+        app.run(host="127.0.0.1", port=8080, debug=True)
     except (KeyboardInterrupt, SystemExit):
         scheduler.shutdown()

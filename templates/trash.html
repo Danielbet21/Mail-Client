@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Deft.B | Trash {% endblock %}
+
+
 {% block content %}
 {% if not messages %}
     <div class="no_mail">
@@ -14,6 +16,9 @@
     {% for msg in messages %}
         {% if "UNREAD" in msg.label_ids %}
         <div class="message-row">
+            <label class="custom-checkbox">
+                <input type="checkbox"><span class="checkmark"></span>
+            </label>
             <div class="message-sender-subject">
                 <p><strong><a href="{{ url_for('get_messages_by_source', sender_email = msg.sender) }}">{{ get_name(msg.sender) }}</a></strong></p>
                 <p><strong><a href="{{ url_for('show_message_info', message_id=msg.id, labels=msg.label_ids) }}">{{ msg.subject }}</a></strong></p>
@@ -69,6 +74,9 @@
         </div>
         {% else %}
         <div class="message-row">
+            <label class="custom-checkbox">
+                <input type="checkbox"><span class="checkmark"></span>
+            </label>
             <div class="message-sender-subject">
                 <p><a href="{{ url_for('get_messages_by_source', sender_email= msg.sender) }}">{{ get_name(msg.sender) }}</a></p>
                 <p><a href="{{ url_for('show_message_info', message_id=msg.id, labels=msg.label_ids) }}">{{ msg.subject }}</a></p>

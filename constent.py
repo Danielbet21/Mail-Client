@@ -98,3 +98,11 @@ class Constent():
             else:
                 date = date.astimezone(timezone.utc)    
             return date
+    
+    @staticmethod
+    def serialize_messages(messages):
+        for message in messages:
+            message["_id"] = ""
+            message["date"] = message["date"].isoformat()
+        return messages
+            
